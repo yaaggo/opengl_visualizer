@@ -14,8 +14,8 @@ struct app_state {
 app_state g_app;
 
 void init_app_state() {
-    g_app.config.window_width = 800;
-    g_app.config.window_height = 450;
+    g_app.config.window_width = 1280;
+    g_app.config.window_height = 720;
     g_app.config.window_title = "OpenGL Visualizer";
 }
 
@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
     glutReshapeFunc(reshape_callback);
     glutMouseFunc(mouse_callback);
     glutMotionFunc(motion_callback);
+    glutPassiveMotionFunc(passive_motion_callback);
     glutKeyboardFunc(keyboard_callback);
     
     glutMainLoop();
