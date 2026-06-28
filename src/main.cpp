@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(0, 0);
     glutInitWindowSize(g_app.config.window_width, g_app.config.window_height);
     glutCreateWindow(g_app.config.window_title);
+    glutFullScreen();
 
     glutDisplayFunc(display_callback);
     glutReshapeFunc(reshape_callback);
@@ -34,6 +35,8 @@ int main(int argc, char** argv) {
     glutMotionFunc(motion_callback);
     glutPassiveMotionFunc(passive_motion_callback);
     glutKeyboardFunc(keyboard_callback);
+    glutKeyboardUpFunc(keyboard_up_callback);
+    glutTimerFunc(16, timer_callback, 0);
     
     glutMainLoop();
     return 0;

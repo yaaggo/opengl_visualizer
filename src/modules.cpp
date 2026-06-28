@@ -77,6 +77,29 @@ void keyboard_callback(unsigned char key, int x, int y) {
     }
 }
 
+void keyboard_up_callback(unsigned char key, int x, int y) {
+    (void)x;
+    (void)y;
+    switch (current_module) {
+        case MENU:
+            break;
+        case BEZIER:
+            break;
+        case VISUALIZER:
+            visualizer_keyboard_up(key);
+            break;
+    }
+}
+
+void timer_callback(int value) {
+    (void)value;
+    if (current_module == VISUALIZER) {
+        visualizer_update();
+    }
+    glutPostRedisplay();
+    glutTimerFunc(16, timer_callback, 0);
+}
+
 void reshape_callback(int width, int height) {
     float target_aspect_ratio = 16.0f / 9.0f;
     float window_aspect_ratio = (float)width / (float)height;

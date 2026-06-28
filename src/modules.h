@@ -11,5 +11,7 @@ void mouse_callback(int button, int state, int x, int y);
 void motion_callback(int x, int y);
 void passive_motion_callback(int x, int y);
 void keyboard_callback(unsigned char key, int x, int y);
+void keyboard_up_callback(unsigned char key, int x, int y);
+void timer_callback(int value);
 
 #endif

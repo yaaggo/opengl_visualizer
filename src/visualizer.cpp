@@ -34,9 +34,14 @@ static float circle_r = 100.0f;
 static float circle_seg = 32.0f;
 
 static bool is_lighting_enabled = true;
+static int current_page_idx = 1;
+
 static float obj_3d_x = 0.0f;
 static float obj_3d_y = 0.0f;
 static float obj_3d_z = 0.0f;
+static float obj_rot_x = 0.0f;
+static float obj_rot_y = 0.0f;
+
 static float light_3d_x = 1.0f;
 static float light_3d_y = 1.5f;
 static float light_3d_z = 2.0f;
@@ -48,8 +53,13 @@ static float camera_pos_x = 0.0f;
 static float camera_pos_y = 0.0f;
 static float camera_pos_z = -5.0f;
 
+static float camera_2d_pos_x = 0.0f;
+static float camera_2d_pos_y = 0.0f;
+
 static float hover_mouse_x = 0.0f;
 static float hover_mouse_y = 0.0f;
+
+static bool keys_state[256] = { false };
 
 static Point2D map_mouse_to_ortho(int x, int y) {
     int local_x = x - viewport_x;
@@ -136,31 +146,52 @@ static void set_param_2(float val) {
 }
 
 static void get_slider_limits_3d(int slider_idx, float* min_val, float* max_val, std::string& label, float* val) {
-    if (slider_idx == 1) {
-        *min_val = 0.1f; *max_val = 3.0f; label = "Tamanho"; *val = obj_3d_size;
-    } else if (slider_idx == 2) {
-        *min_val = -2.0f; *max_val = 2.0f; label = "Objeto X"; *val = obj_3d_x;
-    } else if (slider_idx == 3) {
-        *min_val = -2.0f; *max_val = 2.0f; label = "Objeto Y"; *val = obj_3d_y;
-    } else if (slider_idx == 4) {
-        *min_val = -2.0f; *max_val = 2.0f; label = "Objeto Z"; *val = obj_3d_z;
-    } else if (slider_idx == 5) {
-        *min_val = -5.0f; *max_val = 5.0f; label = "Luz X"; *val = light_3d_x;
-    } else if (slider_idx == 6) {
-        *min_val = -5.0f; *max_val = 5.0f; label = "Luz Y"; *val = light_3d_y;
-    } else if (slider_idx == 7) {
-        *min_val = -5.0f; *max_val = 5.0f; label = "Luz Z"; *val = light_3d_z;
+    if (current_page_idx == 1) {
+        if (slider_idx == 1) {
+            *min_val = 0.1f; *max_val = 3.0f; label = "Tamanho"; *val = obj_3d_size;
+        } else if (slider_idx == 2) {
+            *min_val = -2.0f; *max_val = 2.0f; label = "Objeto X"; *val = obj_3d_x;
+        } else if (slider_idx == 3) {
+            *min_val = -2.0f; *max_val = 2.0f; label = "Objeto Y"; *val = obj_3d_y;
+        } else if (slider_idx == 4) {
+            *min_val = -2.0f; *max_val = 2.0f; label = "Objeto Z"; *val = obj_3d_z;
+        } else if (slider_idx == 5) {
+            *min_val = -180.0f; *max_val = 180.0f; label = "Rotacao X"; *val = obj_rot_x;
+        } else if (slider_idx == 6) {
+            *min_val = -180.0f; *max_val = 180.0f; label = "Rotacao Y"; *val = obj_rot_y;
+        }
+    } else {
+        if (slider_idx == 1) {
+            *min_val = -5.0f; *max_val = 5.0f; label = "Luz X"; *val = light_3d_x;
+        } else if (slider_idx == 2) {
+            *min_val = -5.0f; *max_val = 5.0f; label = "Luz Y"; *val = light_3d_y;
+        } else if (slider_idx == 3) {
+            *min_val = -5.0f; *max_val = 5.0f; label = "Luz Z"; *val = light_3d_z;
+        }
     }
 }
 
 static void set_slider_val_3d(int slider_idx, float val) {
-    if (slider_idx == 1) obj_3d_size = val;
-    else if (slider_idx == 2) obj_3d_x = val;
-    else if (slider_idx == 3) obj_3d_y = val;
-    else if (slider_idx == 4) obj_3d_z = val;
-    else if (slider_idx == 5) light_3d_x = val;
-    else if (slider_idx == 6) light_3d_y = val;
-    else if (slider_idx == 7) light_3d_z = val;
+    if (current_page_idx == 1) {
+        if (slider_idx == 1) obj_3d_size = val;
+        else if (slider_idx == 2) obj_3d_x = val;
+        else if (slider_idx == 3) obj_3d_y = val;
+        else if (slider_idx == 4) obj_3d_z = val;
+        else if (slider_idx == 5) obj_rot_x = val;
+        else if (slider_idx == 6) obj_rot_y = val;
+    } else {
+        if (slider_idx == 1) light_3d_x = val;
+        else if (slider_idx == 2) light_3d_y = val;
+        else if (slider_idx == 3) light_3d_z = val;
+    }
+}
+
+static int get_max_sliders_3d() {
+    if (current_page_idx == 1) {
+        return 6;
+    } else {
+        return 3;
+    }
 }
 
 static void draw_stroke_text_centered(float center_x, float center_y, float scale, float line_width, const std::string& text) {
@@ -179,6 +210,10 @@ static void draw_stroke_text_centered(float center_x, float center_y, float scal
 }
 
 void visualizer_display() {
+    if (!is_lighting_enabled) {
+        current_page_idx = 1;
+    }
+
     glClearColor(0.216f, 0.145f, 0.286f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -343,16 +378,16 @@ void visualizer_display() {
         glPushMatrix();
         glLoadIdentity();
 
-        glTranslatef(0.0f, camera_pos_y, 0.0f);
+        glTranslatef(camera_2d_pos_x, camera_2d_pos_y, 0.0f);
 
         glColor3f(0.25f, 0.17f, 0.33f);
         glLineWidth(2.0f);
         glBegin(GL_LINES);
         for (float gx = -400.0f; gx <= 400.0f; gx += 100.0f) {
-            glVertex2f(gx, -250.0f);
-            glVertex2f(gx, 250.0f);
+            glVertex2f(gx, -10000.0f);
+            glVertex2f(gx, 10000.0f);
         }
-        for (float gy = -200.0f; gy <= 200.0f; gy += 100.0f) {
+        for (float gy = -10000.0f; gy <= 10000.0f; gy += 100.0f) {
             glVertex2f(-460.0f, gy);
             glVertex2f(460.0f, gy);
         }
@@ -383,7 +418,7 @@ void visualizer_display() {
         float rel_x = shape_x - 790.0f;
         float rel_y = shape_y - 600.0f;
 
-        glColor3f(0.918f, 0.804f, 0.761f);
+        glColor3f(0.851f, 0.753f, 0.949f);
         if (selected_shape == 0) {
             glPointSize(point_size);
             glBegin(GL_POINTS);
@@ -515,7 +550,9 @@ void visualizer_display() {
 
         glPushMatrix();
         glTranslatef(obj_3d_x, obj_3d_y, obj_3d_z);
-        glColor3f(0.918f, 0.804f, 0.761f);
+        glRotatef(obj_rot_x, 1.0f, 0.0f, 0.0f);
+        glRotatef(obj_rot_y, 0.0f, 1.0f, 0.0f);
+        glColor3f(0.851f, 0.753f, 0.949f);
 
         if (is_lighting_enabled) {
             if (selected_shape == 0) {
@@ -567,8 +604,8 @@ void visualizer_display() {
     glLoadIdentity();
 
     glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(1110.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Cam");
-    draw_text(1110.0f, 795.0f, GLUT_BITMAP_HELVETICA_18, "Z - Reset Pos");
+    draw_text(1020.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Cam");
+    draw_text(1020.0f, 795.0f, GLUT_BITMAP_HELVETICA_18, "Z - Reset Pos");
 
     if (current_mode_3d) {
         glColor3f(0.918f, 0.804f, 0.761f);
@@ -670,7 +707,7 @@ void visualizer_display() {
             draw_text(1485.0f, 650.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
         }
     } else {
-        int max_sliders = is_lighting_enabled ? 7 : 4;
+        int max_sliders = get_max_sliders_3d();
         for (int idx = 1; idx <= max_sliders; idx++) {
             float min_val, max_val;
             std::string label;
@@ -705,6 +742,58 @@ void visualizer_display() {
             char val_buf[32];
             snprintf(val_buf, sizeof(val_buf), "%.1f", val);
             draw_text(1485.0f, rail_y + 5.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
+        }
+
+        if (is_lighting_enabled) {
+            bool hover_left = is_inside(hover_mouse_x, hover_mouse_y, 1355.0f, 390.0f, 1380.0f, 420.0f);
+            if (hover_left) {
+                glColor3f(0.353f, 0.243f, 0.459f);
+            } else {
+                glColor3f(0.231f, 0.153f, 0.306f);
+            }
+            glBegin(GL_QUADS);
+            glVertex2f(1355.0f, 390.0f);
+            glVertex2f(1380.0f, 390.0f);
+            glVertex2f(1380.0f, 420.0f);
+            glVertex2f(1355.0f, 420.0f);
+            glEnd();
+
+            glColor3f(0.918f, 0.804f, 0.761f);
+            glBegin(GL_LINE_LOOP);
+            glVertex2f(1355.0f, 390.0f);
+            glVertex2f(1380.0f, 390.0f);
+            glVertex2f(1380.0f, 420.0f);
+            glVertex2f(1355.0f, 420.0f);
+            glEnd();
+            draw_text(1362.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, "<");
+
+            char pag_buf[32];
+            snprintf(pag_buf, sizeof(pag_buf), "Pagina %d/2", current_page_idx);
+            draw_text(1390.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, pag_buf);
+
+            bool hover_right = is_inside(hover_mouse_x, hover_mouse_y, 1480.0f, 390.0f, 1505.0f, 420.0f);
+            if (hover_right) {
+                glColor3f(0.353f, 0.243f, 0.459f);
+            } else {
+                glColor3f(0.231f, 0.153f, 0.306f);
+            }
+            glBegin(GL_QUADS);
+            glVertex2f(1480.0f, 390.0f);
+            glVertex2f(1505.0f, 390.0f);
+            glVertex2f(1505.0f, 420.0f);
+            glVertex2f(1480.0f, 420.0f);
+            glEnd();
+
+            glColor3f(0.918f, 0.804f, 0.761f);
+            glBegin(GL_LINE_LOOP);
+            glVertex2f(1480.0f, 390.0f);
+            glVertex2f(1505.0f, 390.0f);
+            glVertex2f(1505.0f, 420.0f);
+            glVertex2f(1480.0f, 420.0f);
+            glEnd();
+            draw_text(1488.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, ">");
+        } else {
+            draw_text(1380.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, "Pagina 1/1");
         }
     }
 
@@ -757,24 +846,27 @@ void visualizer_display() {
     } else {
         char rot_buf[128];
         draw_text(80.0f, 270.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
-        draw_text(80.0f, 230.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
-        draw_text(80.0f, 190.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect_ratio, 0.1, 100.0);");
-        draw_text(80.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
-        draw_text(80.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+        draw_text(80.0f, 235.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+        draw_text(80.0f, 200.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect_ratio, 0.1, 100.0);");
+        draw_text(80.0f, 165.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
+        draw_text(80.0f, 130.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
         snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", camera_pos_x, camera_pos_y, camera_pos_z);
-        draw_text(80.0f, 70.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(80.0f, 95.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
 
-        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f);", camera_rot_x);
-        draw_text(800.0f, 270.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
-        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", camera_rot_y);
-        draw_text(800.0f, 230.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f); glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", camera_rot_x, camera_rot_y);
+        draw_text(80.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+
         snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", obj_3d_x, obj_3d_y, obj_3d_z);
-        draw_text(800.0f, 190.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(800.0f, 270.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f); glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", obj_rot_x, obj_rot_y);
+        draw_text(800.0f, 235.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
 
         if (is_lighting_enabled) {
-            draw_text(800.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
+            draw_text(800.0f, 200.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
             snprintf(rot_buf, sizeof(rot_buf), "GLfloat light_pos[4] = { %.1ff, %.1ff, %.1ff, 1.0f };", light_3d_x, light_3d_y, light_3d_z);
-            draw_text(800.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(800.0f, 165.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(800.0f, 130.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_POSITION, light_pos);");
+            draw_text(800.0f, 95.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
             if (selected_shape == 0) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutSolidCube(%.2ff);", obj_3d_size);
             } else if (selected_shape == 1) {
@@ -786,9 +878,10 @@ void visualizer_display() {
             } else if (selected_shape == 4) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutSolidTeapot(%.2ff);", obj_3d_size * 0.7f);
             }
-            draw_text(800.0f, 70.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(800.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         } else {
-            draw_text(800.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glDisable(GL_LIGHTING);");
+            draw_text(800.0f, 200.0f, GLUT_BITMAP_HELVETICA_18, "glDisable(GL_LIGHTING);");
+            draw_text(800.0f, 165.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
             if (selected_shape == 0) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutWireCube(%.2ff);", obj_3d_size);
             } else if (selected_shape == 1) {
@@ -800,7 +893,7 @@ void visualizer_display() {
             } else if (selected_shape == 4) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutWireTeapot(%.2ff);", obj_3d_size * 0.7f);
             }
-            draw_text(800.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(800.0f, 130.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         }
     }
 
@@ -847,11 +940,22 @@ void visualizer_mouse(int button, int state, int x, int y) {
 
             if (current_mode_3d && is_inside(mouse_pos.x, mouse_pos.y, 350.0f, 805.0f, 520.0f, 825.0f)) {
                 is_lighting_enabled = !is_lighting_enabled;
+                if (!is_lighting_enabled) {
+                    current_page_idx = 1;
+                }
+            }
+
+            if (current_mode_3d && is_lighting_enabled) {
+                if (is_inside(mouse_pos.x, mouse_pos.y, 1355.0f, 390.0f, 1380.0f, 420.0f)) {
+                    current_page_idx = 1;
+                } else if (is_inside(mouse_pos.x, mouse_pos.y, 1480.0f, 390.0f, 1505.0f, 420.0f)) {
+                    current_page_idx = 2;
+                }
             }
 
             if (!current_mode_3d) {
-                float dx = mouse_pos.x - shape_x;
-                float dy = mouse_pos.y - shape_y;
+                float dx = mouse_pos.x - (shape_x + camera_2d_pos_x);
+                float dy = mouse_pos.y - (shape_y + camera_2d_pos_y);
                 if (std::sqrt(dx*dx + dy*dy) <= 15.0f) {
                     selected_point_index = 0;
                 } else {
@@ -883,7 +987,7 @@ void visualizer_mouse(int button, int state, int x, int y) {
                     }
                 }
             } else {
-                int max_sliders = is_lighting_enabled ? 7 : 4;
+                int max_sliders = get_max_sliders_3d();
                 for (int idx = 1; idx <= max_sliders; idx++) {
                     float min_val, max_val;
                     std::string label;
@@ -923,7 +1027,13 @@ void visualizer_motion(int x, int y) {
             camera_rot_y += (float)dx * 0.5f;
             camera_rot_x += (float)dy * 0.5f;
         } else {
-            camera_pos_y -= (float)dy * 1.25f;
+            camera_2d_pos_x += (float)dx * 1.25f;
+            camera_2d_pos_y -= (float)dy * 1.25f;
+
+            if (camera_2d_pos_x < -800.0f) camera_2d_pos_x = -800.0f;
+            if (camera_2d_pos_x > 800.0f) camera_2d_pos_x = 800.0f;
+            if (camera_2d_pos_y < -450.0f) camera_2d_pos_y = -450.0f;
+            if (camera_2d_pos_y > 450.0f) camera_2d_pos_y = 450.0f;
         }
         last_mouse_x = x;
         last_mouse_y = y;
@@ -937,12 +1047,12 @@ void visualizer_motion(int x, int y) {
 
     if (!current_mode_3d) {
         if (selected_point_index == 0) {
-            shape_x = mouse_pos.x;
-            shape_y = mouse_pos.y;
-            if (shape_x < 340.0f) shape_x = 340.0f;
-            if (shape_x > 1240.0f) shape_x = 1240.0f;
-            if (shape_y < 360.0f) shape_y = 360.0f;
-            if (shape_y > 840.0f) shape_y = 840.0f;
+            shape_x = mouse_pos.x - camera_2d_pos_x;
+            shape_y = mouse_pos.y - camera_2d_pos_y;
+            if (shape_x < 390.0f) shape_x = 390.0f;
+            if (shape_x > 1190.0f) shape_x = 1190.0f;
+            if (shape_y < 400.0f) shape_y = 400.0f;
+            if (shape_y > 800.0f) shape_y = 800.0f;
         } else if (selected_point_index == 1) {
             float t = (mouse_pos.x - 1330.0f) / 140.0f;
             if (t < 0.0f) t = 0.0f;
@@ -963,7 +1073,7 @@ void visualizer_motion(int x, int y) {
             set_param_2(min2 + t * (max2 - min2));
         }
     } else {
-        int max_sliders = is_lighting_enabled ? 7 : 4;
+        int max_sliders = get_max_sliders_3d();
         if (selected_point_index >= 1 && selected_point_index <= max_sliders) {
             float t = (mouse_pos.x - 1330.0f) / 140.0f;
             if (t < 0.0f) t = 0.0f;
@@ -987,15 +1097,18 @@ void visualizer_passive_motion(int x, int y) {
 }
 
 void visualizer_keyboard(unsigned char key) {
+    unsigned char lower_key = tolower(key);
     if (key == 27) {
         current_module = MENU;
-    } else if (key == 'r' || key == 'R') {
+    } else if (lower_key == 'r') {
         camera_rot_x = 20.0f;
         camera_rot_y = -30.0f;
         camera_pos_x = 0.0f;
         camera_pos_y = 0.0f;
         camera_pos_z = -5.0f;
-    } else if (key == 'z' || key == 'Z') {
+        camera_2d_pos_x = 0.0f;
+        camera_2d_pos_y = 0.0f;
+    } else if (lower_key == 'z') {
         shape_x = 790.0f;
         shape_y = 600.0f;
         point_size = 10.0f;
@@ -1009,17 +1122,40 @@ void visualizer_keyboard(unsigned char key) {
         obj_3d_x = 0.0f;
         obj_3d_y = 0.0f;
         obj_3d_z = 0.0f;
+        obj_rot_x = 0.0f;
+        obj_rot_y = 0.0f;
         light_3d_x = 1.0f;
         light_3d_y = 1.5f;
         light_3d_z = 2.0f;
-    } else if (key == 'w' || key == 'W') {
-        camera_pos_z += 0.1f;
-    } else if (key == 's' || key == 'S') {
-        camera_pos_z -= 0.1f;
-    } else if (key == 'a' || key == 'A') {
-        camera_pos_x -= 0.1f;
-    } else if (key == 'd' || key == 'D') {
-        camera_pos_x += 0.1f;
+        current_page_idx = 1;
+    } else if (lower_key == 'w' || lower_key == 's' || lower_key == 'a' || lower_key == 'd') {
+        keys_state[lower_key] = true;
     }
     glutPostRedisplay();
+}
+
+void visualizer_keyboard_up(unsigned char key) {
+    keys_state[tolower(key)] = false;
+}
+
+void visualizer_update() {
+    if (current_mode_3d) {
+        if (keys_state['w']) {
+            camera_pos_z += 0.05f;
+        }
+        if (keys_state['s']) {
+            camera_pos_z -= 0.05f;
+        }
+        if (keys_state['a']) {
+            camera_pos_x -= 0.05f;
+        }
+        if (keys_state['d']) {
+            camera_pos_x += 0.05f;
+        }
+
+        if (camera_pos_x < -5.0f) camera_pos_x = -5.0f;
+        if (camera_pos_x > 5.0f) camera_pos_x = 5.0f;
+        if (camera_pos_z < -15.0f) camera_pos_z = -15.0f;
+        if (camera_pos_z > -1.0f) camera_pos_z = -1.0f;
+    }
 }
