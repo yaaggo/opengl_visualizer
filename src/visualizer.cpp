@@ -209,6 +209,15 @@ static void draw_stroke_text_centered(float center_x, float center_y, float scal
     glLineWidth(1.0f);
 }
 
+static void draw_bitmap_text_centered(float x1, float x2, float y, void* font, const std::string& text) {
+    float text_w = 0.0f;
+    for (char c : text) {
+        text_w += glutBitmapWidth(font, c);
+    }
+    float start_x = (x1 + x2) / 2.0f - text_w / 2.0f;
+    draw_text(start_x, y, font, text);
+}
+
 void visualizer_display() {
     if (!is_lighting_enabled) {
         current_page_idx = 1;
@@ -234,10 +243,32 @@ void visualizer_display() {
     if (!current_mode_3d) {
         draw_container(50.0f, 40.0f, 790.0f, 310.0f);
         draw_container(810.0f, 40.0f, 1550.0f, 310.0f);
+
+        glColor3f(0.918f, 0.804f, 0.761f);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glVertex2f(50.0f, 265.0f);
+        glVertex2f(790.0f, 265.0f);
+        glVertex2f(810.0f, 265.0f);
+        glVertex2f(1550.0f, 265.0f);
+        glEnd();
+        glLineWidth(1.0f);
     } else {
         draw_container(50.0f, 40.0f, 530.0f, 310.0f);
         draw_container(550.0f, 40.0f, 1040.0f, 310.0f);
         draw_container(1060.0f, 40.0f, 1550.0f, 310.0f);
+
+        glColor3f(0.918f, 0.804f, 0.761f);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glVertex2f(50.0f, 265.0f);
+        glVertex2f(530.0f, 265.0f);
+        glVertex2f(550.0f, 265.0f);
+        glVertex2f(1040.0f, 265.0f);
+        glVertex2f(1060.0f, 265.0f);
+        glVertex2f(1550.0f, 265.0f);
+        glEnd();
+        glLineWidth(1.0f);
     }
 
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -391,35 +422,27 @@ void visualizer_display() {
         glColor3f(0.25f, 0.17f, 0.33f);
         glLineWidth(2.0f);
         glBegin(GL_LINES);
-        for (float gx = -400.0f; gx <= 400.0f; gx += 100.0f) {
+        for (float gx = -10000.0f; gx <= 10000.0f; gx += 100.0f) {
             glVertex2f(gx, -10000.0f);
             glVertex2f(gx, 10000.0f);
         }
         for (float gy = -10000.0f; gy <= 10000.0f; gy += 100.0f) {
-            glVertex2f(-460.0f, gy);
-            glVertex2f(460.0f, gy);
+            glVertex2f(-10000.0f, gy);
+            glVertex2f(10000.0f, gy);
         }
         glEnd();
 
         glLineWidth(4.0f);
         glColor3f(0.9f, 0.5f, 0.5f);
         glBegin(GL_LINES);
-        glVertex2f(-450.0f, 0.0f);
-        glVertex2f(450.0f, 0.0f);
-        glVertex2f(450.0f, 0.0f);
-        glVertex2f(440.0f, -5.0f);
-        glVertex2f(450.0f, 0.0f);
-        glVertex2f(440.0f, 5.0f);
+        glVertex2f(-10000.0f, 0.0f);
+        glVertex2f(10000.0f, 0.0f);
         glEnd();
 
         glColor3f(0.5f, 0.8f, 0.5f);
         glBegin(GL_LINES);
-        glVertex2f(0.0f, -240.0f);
-        glVertex2f(0.0f, 240.0f);
-        glVertex2f(0.0f, 240.0f);
-        glVertex2f(-5.0f, 230.0f);
-        glVertex2f(0.0f, 240.0f);
-        glVertex2f(5.0f, 230.0f);
+        glVertex2f(0.0f, -10000.0f);
+        glVertex2f(0.0f, 10000.0f);
         glEnd();
         glLineWidth(1.0f);
 
@@ -612,8 +635,8 @@ void visualizer_display() {
     glLoadIdentity();
 
     glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(1020.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Cam");
-    draw_text(1020.0f, 795.0f, GLUT_BITMAP_HELVETICA_18, "Z - Reset Pos");
+    draw_text(1115.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Cam");
+    draw_text(1115.0f, 795.0f, GLUT_BITMAP_HELVETICA_18, "Z - Reset Pos");
 
     if (current_mode_3d) {
         glColor3f(0.918f, 0.804f, 0.761f);
@@ -638,7 +661,14 @@ void visualizer_display() {
     }
 
     glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(1300.0f, 815.0f, GLUT_BITMAP_HELVETICA_18, "PARAMETROS");
+    draw_bitmap_text_centered(1280.0f, 1550.0f, 815.0f, GLUT_BITMAP_HELVETICA_18, "PARAMETROS");
+
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    glVertex2f(1280.0f, 805.0f);
+    glVertex2f(1550.0f, 805.0f);
+    glEnd();
+    glLineWidth(1.0f);
 
     if (!current_mode_3d) {
         float min1, max1, min2, max2;
@@ -777,7 +807,7 @@ void visualizer_display() {
 
             char pag_buf[32];
             snprintf(pag_buf, sizeof(pag_buf), "Pagina %d/2", current_page_idx);
-            draw_text(1370.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, pag_buf);
+            draw_bitmap_text_centered(1360.0f, 1470.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, pag_buf);
 
             bool hover_right = is_inside(hover_mouse_x, hover_mouse_y, 1470.0f, 390.0f, 1494.0f, 420.0f);
             if (hover_right) {
@@ -801,7 +831,7 @@ void visualizer_display() {
             glEnd();
             draw_text(1478.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, ">");
         } else {
-            draw_text(1373.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, "Pagina 1/1");
+            draw_bitmap_text_centered(1280.0f, 1550.0f, 400.0f, GLUT_BITMAP_HELVETICA_18, "Pagina 1/1");
         }
     }
 
@@ -810,90 +840,90 @@ void visualizer_display() {
         float rel_x = shape_x - 790.0f;
         float rel_y = shape_y - 600.0f;
 
-        draw_text(70.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "PROJECAO E VISUALIZACAO 2D");
-        draw_text(80.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
-        draw_text(80.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
-        draw_text(80.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glOrtho(-460, 460, -250, 250, -1000, 1000);");
-        draw_text(80.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
-        draw_text(80.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+        draw_bitmap_text_centered(50.0f, 790.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "PROJECAO E VISUALIZACAO 2D");
+        draw_text(70.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
+        draw_text(70.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+        draw_text(70.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glOrtho(-460, 460, -250, 250, -1000, 1000);");
+        draw_text(70.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
+        draw_text(70.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
         char trans_buf[64];
         snprintf(trans_buf, sizeof(trans_buf), "glTranslatef(%.1ff, %.1ff, 0.0f);", camera_2d_pos_x, camera_2d_pos_y);
-        draw_text(80.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, trans_buf);
+        draw_text(70.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, trans_buf);
 
-        draw_text(830.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "DESENHO DA FIGURA 2D");
+        draw_bitmap_text_centered(810.0f, 1550.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "DESENHO DA FIGURA 2D");
         if (selected_shape == 0) {
             char code_buf[128];
             snprintf(code_buf, sizeof(code_buf), "glPointSize(%.1ff);", point_size);
-            draw_text(840.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-            draw_text(840.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_POINTS);");
+            draw_text(830.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_POINTS);");
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x, rel_y);
-            draw_text(840.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-            draw_text(840.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
+            draw_text(830.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
         } else if (selected_shape == 1) {
             char code_buf[128];
-            draw_text(840.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glLineWidth(4.0f);");
-            draw_text(840.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINES);");
+            draw_text(830.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glLineWidth(4.0f);");
+            draw_text(830.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINES);");
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x, rel_y);
-            draw_text(840.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x + line_dx, rel_y + line_dy);
-            draw_text(840.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-            draw_text(840.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
+            draw_text(830.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
         } else if (selected_shape == 2) {
             char code_buf[128];
-            draw_text(840.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINE_LOOP);");
+            draw_text(830.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINE_LOOP);");
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x - rect_w / 2.0f, rel_y - rect_h / 2.0f);
-            draw_text(840.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x + rect_w / 2.0f, rel_y - rect_h / 2.0f);
-            draw_text(840.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x + rect_w / 2.0f, rel_y + rect_h / 2.0f);
-            draw_text(840.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x - rect_w / 2.0f, rel_y + rect_h / 2.0f);
-            draw_text(840.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-            draw_text(840.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
+            draw_text(830.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
         } else if (selected_shape == 3) {
             char code_buf[128];
-            draw_text(840.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINE_LOOP);");
+            draw_text(830.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINE_LOOP);");
             snprintf(code_buf, sizeof(code_buf), "for (int i = 0; i < %d; i++) {", (int)circle_seg);
-            draw_text(840.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             snprintf(code_buf, sizeof(code_buf), "    float theta = 2.0f * 3.14159f * i / %d;", (int)circle_seg);
-            draw_text(840.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff + %.1ff * cos(theta), %.1ff + %.1ff * sin(theta));", rel_x, circle_r, rel_y, circle_r);
-            draw_text(840.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-            draw_text(840.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "}");
-            draw_text(840.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
+            draw_text(830.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+            draw_text(830.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "}");
+            draw_text(830.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
         }
     } else {
         char rot_buf[128];
 
-        draw_text(70.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "PROJECAO E CAMERA");
-        draw_text(80.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
-        draw_text(80.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
-        draw_text(80.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect_ratio, 0.1, 100.0);");
-        draw_text(80.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
-        draw_text(80.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+        draw_bitmap_text_centered(50.0f, 530.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "PROJECAO E CAMERA");
+        draw_text(70.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
+        draw_text(70.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+        draw_text(70.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect_ratio, 0.1, 100.0);");
+        draw_text(70.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
+        draw_text(70.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
         snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", camera_pos_x, camera_pos_y, camera_pos_z);
-        draw_text(80.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(70.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f); glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", camera_rot_x, camera_rot_y);
-        draw_text(80.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(70.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
 
-        draw_text(570.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "ROTACAO & TRANSLACAO SOLIDO");
-        draw_text(580.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glPushMatrix();");
+        draw_bitmap_text_centered(550.0f, 1040.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "ROTACAO & TRANSLACAO SOLIDO");
+        draw_text(570.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glPushMatrix();");
         snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", obj_3d_x, obj_3d_y, obj_3d_z);
-        draw_text(580.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(570.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f);", obj_rot_x);
-        draw_text(580.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(570.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", obj_rot_y);
-        draw_text(580.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
-        draw_text(580.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "// transformacao local concluida");
-        draw_text(580.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glPopMatrix();");
+        draw_text(570.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        draw_text(570.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "// transformacao local concluida");
+        draw_text(570.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glPopMatrix();");
 
-        draw_text(1080.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "ILUMINACAO & RENDER");
+        draw_bitmap_text_centered(1060.0f, 1550.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "ILUMINACAO & RENDER");
         if (is_lighting_enabled) {
-            draw_text(1090.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
+            draw_text(1080.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
             snprintf(rot_buf, sizeof(rot_buf), "GLfloat pos[4] = { %.1ff, %.1ff, %.1ff, 1.0f };", light_3d_x, light_3d_y, light_3d_z);
-            draw_text(1090.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
-            draw_text(1090.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_POSITION, pos);");
-            draw_text(1090.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
+            draw_text(1080.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(1080.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_POSITION, pos);");
+            draw_text(1080.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
             if (selected_shape == 0) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutSolidCube(%.2ff);", obj_3d_size);
             } else if (selected_shape == 1) {
@@ -905,10 +935,10 @@ void visualizer_display() {
             } else if (selected_shape == 4) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutSolidTeapot(%.2ff);", obj_3d_size * 0.7f);
             }
-            draw_text(1090.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(1080.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         } else {
-            draw_text(1090.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glDisable(GL_LIGHTING);");
-            draw_text(1090.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
+            draw_text(1080.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glDisable(GL_LIGHTING);");
+            draw_text(1080.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
             if (selected_shape == 0) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutWireCube(%.2ff);", obj_3d_size);
             } else if (selected_shape == 1) {
@@ -920,7 +950,7 @@ void visualizer_display() {
             } else if (selected_shape == 4) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutWireTeapot(%.2ff);", obj_3d_size * 0.7f);
             }
-            draw_text(1090.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            draw_text(1080.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
         }
     }
 

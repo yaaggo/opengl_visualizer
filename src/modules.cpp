@@ -65,6 +65,9 @@ void passive_motion_callback(int x, int y) {
 void keyboard_callback(unsigned char key, int x, int y) {
     (void)x;
     (void)y;
+    if (key == 27 && current_module == MENU) {
+        exit(0);
+    }
     switch (current_module) {
         case MENU:
             break;
