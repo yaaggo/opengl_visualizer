@@ -15,6 +15,7 @@ struct Point2D {
 static bool current_mode_3d = false;
 static int selected_shape = 0;
 static bool is_2d_expanded = true;
+static bool is_3d_expanded = false;
 
 static int selected_point_index = -1;
 static bool right_button_down = false;
@@ -32,8 +33,20 @@ static float rect_h = 150.0f;
 static float circle_r = 100.0f;
 static float circle_seg = 32.0f;
 
+static bool is_lighting_enabled = true;
+static float obj_3d_x = 0.0f;
+static float obj_3d_y = 0.0f;
+static float obj_3d_z = 0.0f;
+static float light_3d_x = 1.0f;
+static float light_3d_y = 1.5f;
+static float light_3d_z = 2.0f;
+static float obj_3d_size = 1.2f;
+
 static float camera_rot_x = 20.0f;
 static float camera_rot_y = -30.0f;
+static float camera_pos_x = 0.0f;
+static float camera_pos_y = 0.0f;
+static float camera_pos_z = -5.0f;
 
 static float hover_mouse_x = 0.0f;
 static float hover_mouse_y = 0.0f;
@@ -122,6 +135,34 @@ static void set_param_2(float val) {
     else if (selected_shape == 3) circle_seg = val;
 }
 
+static void get_slider_limits_3d(int slider_idx, float* min_val, float* max_val, std::string& label, float* val) {
+    if (slider_idx == 1) {
+        *min_val = 0.1f; *max_val = 3.0f; label = "Tamanho"; *val = obj_3d_size;
+    } else if (slider_idx == 2) {
+        *min_val = -2.0f; *max_val = 2.0f; label = "Objeto X"; *val = obj_3d_x;
+    } else if (slider_idx == 3) {
+        *min_val = -2.0f; *max_val = 2.0f; label = "Objeto Y"; *val = obj_3d_y;
+    } else if (slider_idx == 4) {
+        *min_val = -2.0f; *max_val = 2.0f; label = "Objeto Z"; *val = obj_3d_z;
+    } else if (slider_idx == 5) {
+        *min_val = -5.0f; *max_val = 5.0f; label = "Luz X"; *val = light_3d_x;
+    } else if (slider_idx == 6) {
+        *min_val = -5.0f; *max_val = 5.0f; label = "Luz Y"; *val = light_3d_y;
+    } else if (slider_idx == 7) {
+        *min_val = -5.0f; *max_val = 5.0f; label = "Luz Z"; *val = light_3d_z;
+    }
+}
+
+static void set_slider_val_3d(int slider_idx, float val) {
+    if (slider_idx == 1) obj_3d_size = val;
+    else if (slider_idx == 2) obj_3d_x = val;
+    else if (slider_idx == 3) obj_3d_y = val;
+    else if (slider_idx == 4) obj_3d_z = val;
+    else if (slider_idx == 5) light_3d_x = val;
+    else if (slider_idx == 6) light_3d_y = val;
+    else if (slider_idx == 7) light_3d_z = val;
+}
+
 static void draw_stroke_text_centered(float center_x, float center_y, float scale, float line_width, const std::string& text) {
     glPushMatrix();
     glLineWidth(line_width);
@@ -183,7 +224,13 @@ void visualizer_display() {
     glEnd();
     draw_stroke_text_centered(175.0f, 767.5f, 0.15f, 2.0f, is_2d_expanded ? "2D [-]" : "2D [+]");
 
-    float current_y_3d_btn = 695.0f;
+    float current_y_3d_btn = 0.0f;
+    if (!current_mode_3d) {
+        current_y_3d_btn = 480.0f;
+    } else {
+        current_y_3d_btn = 685.0f;
+    }
+
     if (is_2d_expanded) {
         std::string shapes_labels[4] = { "PONTO", "LINHA", "RETANGULO", "CIRCULO" };
         for (int i = 0; i < 4; i++) {
@@ -213,7 +260,6 @@ void visualizer_display() {
             glEnd();
             draw_stroke_text_centered(185.0f, (y1 + y2) / 2.0f, 0.12f, 1.5f, shapes_labels[i]);
         }
-        current_y_3d_btn = 480.0f;
     }
 
     bool hover_3d = is_inside(hover_mouse_x, hover_mouse_y, 70.0f, current_y_3d_btn, 280.0f, current_y_3d_btn + 45.0f);
@@ -238,79 +284,134 @@ void visualizer_display() {
     glVertex2f(280.0f, current_y_3d_btn + 45.0f);
     glVertex2f(70.0f, current_y_3d_btn + 45.0f);
     glEnd();
-    draw_stroke_text_centered(175.0f, current_y_3d_btn + 22.5f, 0.15f, 2.0f, "3D");
+    draw_stroke_text_centered(175.0f, current_y_3d_btn + 22.5f, 0.15f, 2.0f, is_3d_expanded ? "3D [-]" : "3D [+]");
+
+    if (is_3d_expanded) {
+        std::string shapes_labels_3d[5] = { "CUBO", "ESFERA", "CONE", "TORO", "BULE" };
+        for (int i = 0; i < 5; i++) {
+            float y1 = 635.0f - i * 50.0f;
+            float y2 = y1 + 40.0f;
+            bool hover_shape = is_inside(hover_mouse_x, hover_mouse_y, 90.0f, y1, 280.0f, y2);
+            if (current_mode_3d && selected_shape == i) {
+                glColor3f(0.353f, 0.243f, 0.459f);
+            } else if (hover_shape) {
+                glColor3f(0.282f, 0.192f, 0.369f);
+            } else {
+                glColor3f(0.231f, 0.153f, 0.306f);
+            }
+            glBegin(GL_QUADS);
+            glVertex2f(90.0f, y1);
+            glVertex2f(280.0f, y1);
+            glVertex2f(280.0f, y2);
+            glVertex2f(90.0f, y2);
+            glEnd();
+
+            glColor3f(0.918f, 0.804f, 0.761f);
+            glBegin(GL_LINE_LOOP);
+            glVertex2f(90.0f, y1);
+            glVertex2f(280.0f, y1);
+            glVertex2f(280.0f, y2);
+            glVertex2f(90.0f, y2);
+            glEnd();
+            draw_stroke_text_centered(185.0f, (y1 + y2) / 2.0f, 0.12f, 1.5f, shapes_labels_3d[i]);
+        }
+    }
+
+    float rx = 330.0f / 1600.0f;
+    float ry = 350.0f / 900.0f;
+    float rw = (1250.0f - 330.0f) / 1600.0f;
+    float rh = (850.0f - 350.0f) / 900.0f;
+
+    int px = viewport_x + (int)(rx * viewport_width);
+    int py = viewport_y + (int)(ry * viewport_height);
+    int pw = (int)(rw * viewport_width);
+    int ph = (int)(rh * viewport_height);
+
+    glViewport(px, py, pw, ph);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(px, py, pw, ph);
+
+    glClearColor(0.169f, 0.106f, 0.231f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (!current_mode_3d) {
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(viewport_x + (int)(330.0f / 1600.0f * viewport_width),
-                  viewport_y + (int)(350.0f / 900.0f * viewport_height),
-                  (int)((1250.0f - 330.0f) / 1600.0f * viewport_width),
-                  (int)((850.0f - 350.0f) / 900.0f * viewport_height));
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(-460.0, 460.0, -250.0, 250.0, -1000.0, 1000.0);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        glTranslatef(0.0f, camera_pos_y, 0.0f);
 
         glColor3f(0.25f, 0.17f, 0.33f);
-        glLineWidth(1.0f);
+        glLineWidth(2.0f);
         glBegin(GL_LINES);
-        for (float gx = 390.0f; gx <= 1190.0f; gx += 100.0f) {
-            glVertex2f(gx, 350.0f);
-            glVertex2f(gx, 850.0f);
+        for (float gx = -400.0f; gx <= 400.0f; gx += 100.0f) {
+            glVertex2f(gx, -250.0f);
+            glVertex2f(gx, 250.0f);
         }
-        for (float gy = 400.0f; gy <= 800.0f; gy += 100.0f) {
-            glVertex2f(330.0f, gy);
-            glVertex2f(1250.0f, gy);
+        for (float gy = -200.0f; gy <= 200.0f; gy += 100.0f) {
+            glVertex2f(-460.0f, gy);
+            glVertex2f(460.0f, gy);
         }
         glEnd();
 
-        glLineWidth(2.0f);
+        glLineWidth(4.0f);
         glColor3f(0.9f, 0.5f, 0.5f);
         glBegin(GL_LINES);
-        glVertex2f(340.0f, 600.0f);
-        glVertex2f(1230.0f, 600.0f);
-        glVertex2f(1230.0f, 600.0f);
-        glVertex2f(1220.0f, 595.0f);
-        glVertex2f(1230.0f, 600.0f);
-        glVertex2f(1220.0f, 605.0f);
+        glVertex2f(-450.0f, 0.0f);
+        glVertex2f(450.0f, 0.0f);
+        glVertex2f(450.0f, 0.0f);
+        glVertex2f(440.0f, -5.0f);
+        glVertex2f(450.0f, 0.0f);
+        glVertex2f(440.0f, 5.0f);
         glEnd();
 
         glColor3f(0.5f, 0.8f, 0.5f);
         glBegin(GL_LINES);
-        glVertex2f(790.0f, 360.0f);
-        glVertex2f(790.0f, 840.0f);
-        glVertex2f(790.0f, 840.0f);
-        glVertex2f(785.0f, 830.0f);
-        glVertex2f(790.0f, 840.0f);
-        glVertex2f(795.0f, 830.0f);
+        glVertex2f(0.0f, -240.0f);
+        glVertex2f(0.0f, 240.0f);
+        glVertex2f(0.0f, 240.0f);
+        glVertex2f(-5.0f, 230.0f);
+        glVertex2f(0.0f, 240.0f);
+        glVertex2f(5.0f, 230.0f);
         glEnd();
         glLineWidth(1.0f);
+
+        float rel_x = shape_x - 790.0f;
+        float rel_y = shape_y - 600.0f;
 
         glColor3f(0.918f, 0.804f, 0.761f);
         if (selected_shape == 0) {
             glPointSize(point_size);
             glBegin(GL_POINTS);
-            glVertex2f(shape_x, shape_y);
+            glVertex2f(rel_x, rel_y);
             glEnd();
             glPointSize(1.0f);
         } else if (selected_shape == 1) {
-            glLineWidth(3.0f);
+            glLineWidth(4.0f);
             glBegin(GL_LINES);
-            glVertex2f(shape_x, shape_y);
-            glVertex2f(shape_x + line_dx, shape_y - line_dy);
+            glVertex2f(rel_x, rel_y);
+            glVertex2f(rel_x + line_dx, rel_y + line_dy);
             glEnd();
             glLineWidth(1.0f);
         } else if (selected_shape == 2) {
-            glLineWidth(3.0f);
+            glLineWidth(4.0f);
             glBegin(GL_LINE_LOOP);
-            glVertex2f(shape_x - rect_w / 2.0f, shape_y - rect_h / 2.0f);
-            glVertex2f(shape_x + rect_w / 2.0f, shape_y - rect_h / 2.0f);
-            glVertex2f(shape_x + rect_w / 2.0f, shape_y + rect_h / 2.0f);
-            glVertex2f(shape_x - rect_w / 2.0f, shape_y + rect_h / 2.0f);
+            glVertex2f(rel_x - rect_w / 2.0f, rel_y - rect_h / 2.0f);
+            glVertex2f(rel_x + rect_w / 2.0f, rel_y - rect_h / 2.0f);
+            glVertex2f(rel_x + rect_w / 2.0f, rel_y + rect_h / 2.0f);
+            glVertex2f(rel_x - rect_w / 2.0f, rel_y + rect_h / 2.0f);
             glEnd();
             glLineWidth(1.0f);
         } else if (selected_shape == 3) {
-            glLineWidth(3.0f);
+            glLineWidth(4.0f);
             glBegin(GL_LINE_LOOP);
             for (int i = 0; i < (int)circle_seg; i++) {
                 float theta = 2.0f * 3.14159265f * (float)i / circle_seg;
-                glVertex2f(shape_x + circle_r * cosf(theta), shape_y + circle_r * sinf(theta));
+                glVertex2f(rel_x + circle_r * cosf(theta), rel_y + circle_r * sinf(theta));
             }
             glEnd();
             glLineWidth(1.0f);
@@ -322,31 +423,17 @@ void visualizer_display() {
             glColor3f(0.918f, 0.804f, 0.761f);
         }
         glBegin(GL_QUADS);
-        glVertex2f(shape_x - 6.0f, shape_y - 6.0f);
-        glVertex2f(shape_x + 6.0f, shape_y - 6.0f);
-        glVertex2f(shape_x + 6.0f, shape_y + 6.0f);
-        glVertex2f(shape_x - 6.0f, shape_y + 6.0f);
+        glVertex2f(rel_x - 6.0f, rel_y - 6.0f);
+        glVertex2f(rel_x + 6.0f, rel_y - 6.0f);
+        glVertex2f(rel_x + 6.0f, rel_y + 6.0f);
+        glVertex2f(rel_x - 6.0f, rel_y + 6.0f);
         glEnd();
 
-        glDisable(GL_SCISSOR_TEST);
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
     } else {
-        float rx = 330.0f / 1600.0f;
-        float ry = 350.0f / 900.0f;
-        float rw = (1250.0f - 330.0f) / 1600.0f;
-        float rh = (850.0f - 350.0f) / 900.0f;
-
-        int px = viewport_x + (int)(rx * viewport_width);
-        int py = viewport_y + (int)(ry * viewport_height);
-        int pw = (int)(rw * viewport_width);
-        int ph = (int)(rh * viewport_height);
-
-        glViewport(px, py, pw, ph);
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(px, py, pw, ph);
-
-        glClearColor(0.169f, 0.106f, 0.231f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glLoadIdentity();
@@ -356,11 +443,40 @@ void visualizer_display() {
         glLoadIdentity();
         glEnable(GL_DEPTH_TEST);
 
-        glTranslatef(0.0f, 0.0f, -5.0f);
+        glTranslatef(camera_pos_x, camera_pos_y, camera_pos_z);
         glRotatef(camera_rot_x, 1.0f, 0.0f, 0.0f);
         glRotatef(camera_rot_y, 0.0f, 1.0f, 0.0f);
 
-        glLineWidth(3.0f);
+        glLineWidth(2.0f);
+        glColor3f(0.25f, 0.17f, 0.33f);
+        glBegin(GL_LINES);
+        for (float g = -25.0f; g <= 25.0f; g += 1.0f) {
+            glVertex3f(g, -1.0f, -25.0f);
+            glVertex3f(g, -1.0f, 25.0f);
+            glVertex3f(-25.0f, -1.0f, g);
+            glVertex3f(25.0f, -1.0f, g);
+        }
+        glEnd();
+        glLineWidth(1.0f);
+
+        if (is_lighting_enabled) {
+            glEnable(GL_LIGHTING);
+            glEnable(GL_LIGHT0);
+            glEnable(GL_COLOR_MATERIAL);
+            glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+
+            GLfloat light_pos[4] = { light_3d_x, light_3d_y, light_3d_z, 1.0f };
+            GLfloat light_diffuse[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+            GLfloat light_ambient[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
+
+            glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+            glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+        } else {
+            glDisable(GL_LIGHTING);
+        }
+
+        glLineWidth(4.0f);
         glColor3f(0.9f, 0.5f, 0.5f);
         glBegin(GL_LINES);
         glVertex3f(0.0f, 0.0f, 0.0f);
@@ -380,19 +496,100 @@ void visualizer_display() {
         glEnd();
         glLineWidth(1.0f);
 
-        glColor3f(0.918f, 0.804f, 0.761f);
-        glLineWidth(1.5f);
-        glutWireCube(1.2);
-        glLineWidth(1.0f);
+        glDisable(GL_LIGHTING);
+        glPushMatrix();
+        glTranslatef(light_3d_x, light_3d_y, light_3d_z);
+        glColor3f(0.9f, 0.9f, 0.5f);
+        glBegin(GL_LINES);
+        glVertex3f(-0.15f, 0.0f, 0.0f); glVertex3f(0.15f, 0.0f, 0.0f);
+        glVertex3f(0.0f, -0.15f, 0.0f); glVertex3f(0.0f, 0.15f, 0.0f);
+        glVertex3f(0.0f, 0.0f, -0.15f); glVertex3f(0.0f, 0.0f, 0.15f);
+        glVertex3f(-0.1f, -0.1f, 0.0f); glVertex3f(0.1f, 0.1f, 0.0f);
+        glVertex3f(-0.1f, 0.1f, 0.0f); glVertex3f(0.1f, -0.1f, 0.0f);
+        glEnd();
+        glPopMatrix();
 
+        if (is_lighting_enabled) {
+            glEnable(GL_LIGHTING);
+        }
+
+        glPushMatrix();
+        glTranslatef(obj_3d_x, obj_3d_y, obj_3d_z);
+        glColor3f(0.918f, 0.804f, 0.761f);
+
+        if (is_lighting_enabled) {
+            if (selected_shape == 0) {
+                glutSolidCube(obj_3d_size);
+            } else if (selected_shape == 1) {
+                glutSolidSphere(obj_3d_size * 0.6f, 20, 20);
+            } else if (selected_shape == 2) {
+                glutSolidCone(obj_3d_size * 0.6f, obj_3d_size * 1.2f, 20, 20);
+            } else if (selected_shape == 3) {
+                glutSolidTorus(obj_3d_size * 0.25f, obj_3d_size * 0.55f, 20, 20);
+            } else if (selected_shape == 4) {
+                glutSolidTeapot(obj_3d_size * 0.7f);
+            }
+        } else {
+            glLineWidth(1.5f);
+            if (selected_shape == 0) {
+                glutWireCube(obj_3d_size);
+            } else if (selected_shape == 1) {
+                glutWireSphere(obj_3d_size * 0.6f, 20, 20);
+            } else if (selected_shape == 2) {
+                glutWireCone(obj_3d_size * 0.6f, obj_3d_size * 1.2f, 20, 20);
+            } else if (selected_shape == 3) {
+                glutWireTorus(obj_3d_size * 0.25f, obj_3d_size * 0.55f, 20, 20);
+            } else if (selected_shape == 4) {
+                glutWireTeapot(obj_3d_size * 0.7f);
+            }
+            glLineWidth(1.0f);
+        }
+
+        glPopMatrix();
+
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+        glDisable(GL_COLOR_MATERIAL);
         glDisable(GL_DEPTH_TEST);
         glPopMatrix();
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
         glMatrixMode(GL_MODELVIEW);
+    }
 
-        glDisable(GL_SCISSOR_TEST);
-        glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
+    glDisable(GL_SCISSOR_TEST);
+    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, 1600, 0, 900);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glColor3f(0.918f, 0.804f, 0.761f);
+    draw_text(1110.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Cam");
+    draw_text(1110.0f, 795.0f, GLUT_BITMAP_HELVETICA_18, "Z - Reset Pos");
+
+    if (current_mode_3d) {
+        glColor3f(0.918f, 0.804f, 0.761f);
+        glLineWidth(2.0f);
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(350.0f, 805.0f);
+        glVertex2f(370.0f, 805.0f);
+        glVertex2f(370.0f, 825.0f);
+        glVertex2f(350.0f, 825.0f);
+        glEnd();
+        glLineWidth(1.0f);
+
+        if (is_lighting_enabled) {
+            glBegin(GL_QUADS);
+            glVertex2f(355.0f, 810.0f);
+            glVertex2f(365.0f, 810.0f);
+            glVertex2f(365.0f, 820.0f);
+            glVertex2f(355.0f, 820.0f);
+            glEnd();
+        }
+        draw_text(380.0f, 810.0f, GLUT_BITMAP_HELVETICA_18, "Iluminacao + Solido");
     }
 
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -416,15 +613,15 @@ void visualizer_display() {
         draw_text(1300.0f, 750.0f, GLUT_BITMAP_HELVETICA_18, pos_buf);
 
         if (!label1.empty()) {
-            draw_text(1300.0f, 700.0f, GLUT_BITMAP_HELVETICA_18, label1);
+            draw_text(1300.0f, 712.0f, GLUT_BITMAP_HELVETICA_18, label1);
             glColor3f(0.5f, 0.5f, 0.6f);
             glBegin(GL_LINES);
-            glVertex2f(1350.0f, 670.0f);
-            glVertex2f(1500.0f, 670.0f);
+            glVertex2f(1330.0f, 700.0f);
+            glVertex2f(1470.0f, 700.0f);
             glEnd();
 
             float t1 = (val1 - min1) / (max1 - min1);
-            float sx1 = 1350.0f + t1 * 150.0f;
+            float sx1 = 1330.0f + t1 * 140.0f;
 
             if (selected_point_index == 1) {
                 glColor3f(1.0f, 0.5f, 0.5f);
@@ -432,28 +629,28 @@ void visualizer_display() {
                 glColor3f(0.918f, 0.804f, 0.761f);
             }
             glBegin(GL_QUADS);
-            glVertex2f(sx1 - 6.0f, 670.0f - 6.0f);
-            glVertex2f(sx1 + 6.0f, 670.0f - 6.0f);
-            glVertex2f(sx1 + 6.0f, 670.0f + 6.0f);
-            glVertex2f(sx1 - 6.0f, 670.0f + 6.0f);
+            glVertex2f(sx1 - 6.0f, 700.0f - 6.0f);
+            glVertex2f(sx1 + 6.0f, 700.0f - 6.0f);
+            glVertex2f(sx1 + 6.0f, 700.0f + 6.0f);
+            glVertex2f(sx1 - 6.0f, 700.0f + 6.0f);
             glEnd();
 
             glColor3f(0.918f, 0.804f, 0.761f);
             char val_buf[32];
             snprintf(val_buf, sizeof(val_buf), "%.1f", val1);
-            draw_text(1515.0f, 675.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
+            draw_text(1485.0f, 705.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
         }
 
         if (!label2.empty()) {
-            draw_text(1300.0f, 620.0f, GLUT_BITMAP_HELVETICA_18, label2);
+            draw_text(1300.0f, 657.0f, GLUT_BITMAP_HELVETICA_18, label2);
             glColor3f(0.5f, 0.5f, 0.6f);
             glBegin(GL_LINES);
-            glVertex2f(1350.0f, 590.0f);
-            glVertex2f(1500.0f, 590.0f);
+            glVertex2f(1330.0f, 645.0f);
+            glVertex2f(1470.0f, 645.0f);
             glEnd();
 
             float t2 = (val2 - min2) / (max2 - min2);
-            float sx2 = 1350.0f + t2 * 150.0f;
+            float sx2 = 1330.0f + t2 * 140.0f;
 
             if (selected_point_index == 2) {
                 glColor3f(1.0f, 0.5f, 0.5f);
@@ -461,22 +658,54 @@ void visualizer_display() {
                 glColor3f(0.918f, 0.804f, 0.761f);
             }
             glBegin(GL_QUADS);
-            glVertex2f(sx2 - 6.0f, 590.0f - 6.0f);
-            glVertex2f(sx2 + 6.0f, 590.0f - 6.0f);
-            glVertex2f(sx2 + 6.0f, 590.0f + 6.0f);
-            glVertex2f(sx2 - 6.0f, 590.0f + 6.0f);
+            glVertex2f(sx2 - 6.0f, 645.0f - 6.0f);
+            glVertex2f(sx2 + 6.0f, 645.0f - 6.0f);
+            glVertex2f(sx2 + 6.0f, 645.0f + 6.0f);
+            glVertex2f(sx2 - 6.0f, 645.0f + 6.0f);
             glEnd();
 
             glColor3f(0.918f, 0.804f, 0.761f);
             char val_buf[32];
             snprintf(val_buf, sizeof(val_buf), "%.1f", val2);
-            draw_text(1515.0f, 595.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
+            draw_text(1485.0f, 650.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
         }
     } else {
-        draw_text(1300.0f, 780.0f, GLUT_BITMAP_HELVETICA_18, "Modo 3D Ativo");
-        draw_text(1300.0f, 740.0f, GLUT_BITMAP_HELVETICA_18, "Rotacione a camera");
-        draw_text(1300.0f, 710.0f, GLUT_BITMAP_HELVETICA_18, "arrastando com o");
-        draw_text(1300.0f, 680.0f, GLUT_BITMAP_HELVETICA_18, "botao direito.");
+        int max_sliders = is_lighting_enabled ? 7 : 4;
+        for (int idx = 1; idx <= max_sliders; idx++) {
+            float min_val, max_val;
+            std::string label;
+            float val;
+            get_slider_limits_3d(idx, &min_val, &max_val, label, &val);
+
+            float rail_y = 750.0f - (idx - 1) * 55.0f;
+            draw_text(1300.0f, rail_y + 12.0f, GLUT_BITMAP_HELVETICA_18, label);
+
+            glColor3f(0.5f, 0.5f, 0.6f);
+            glBegin(GL_LINES);
+            glVertex2f(1330.0f, rail_y);
+            glVertex2f(1470.0f, rail_y);
+            glEnd();
+
+            float t = (val - min_val) / (max_val - min_val);
+            float sx = 1330.0f + t * 140.0f;
+
+            if (selected_point_index == idx) {
+                glColor3f(1.0f, 0.5f, 0.5f);
+            } else {
+                glColor3f(0.918f, 0.804f, 0.761f);
+            }
+            glBegin(GL_QUADS);
+            glVertex2f(sx - 6.0f, rail_y - 6.0f);
+            glVertex2f(sx + 6.0f, rail_y - 6.0f);
+            glVertex2f(sx + 6.0f, rail_y + 6.0f);
+            glVertex2f(sx - 6.0f, rail_y + 6.0f);
+            glEnd();
+
+            glColor3f(0.918f, 0.804f, 0.761f);
+            char val_buf[32];
+            snprintf(val_buf, sizeof(val_buf), "%.1f", val);
+            draw_text(1485.0f, rail_y + 5.0f, GLUT_BITMAP_HELVETICA_18, val_buf);
+        }
     }
 
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -494,11 +723,11 @@ void visualizer_display() {
             draw_text(80.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
         } else if (selected_shape == 1) {
             char code_buf[128];
-            draw_text(80.0f, 270.0f, GLUT_BITMAP_HELVETICA_18, "glLineWidth(3.0f);");
+            draw_text(80.0f, 270.0f, GLUT_BITMAP_HELVETICA_18, "glLineWidth(4.0f);");
             draw_text(80.0f, 230.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_LINES);");
             snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x, rel_y);
             draw_text(80.0f, 190.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-            snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x + line_dx, rel_y - line_dy);
+            snprintf(code_buf, sizeof(code_buf), "    glVertex2f(%.1ff, %.1ff);", rel_x + line_dx, rel_y + line_dy);
             draw_text(80.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
             draw_text(80.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, "glEnd();");
         } else if (selected_shape == 2) {
@@ -532,8 +761,47 @@ void visualizer_display() {
         draw_text(80.0f, 190.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect_ratio, 0.1, 100.0);");
         draw_text(80.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
         draw_text(80.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
-        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f); glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", camera_rot_x, camera_rot_y);
+        snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", camera_pos_x, camera_pos_y, camera_pos_z);
         draw_text(80.0f, 70.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+
+        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f);", camera_rot_x);
+        draw_text(800.0f, 270.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", camera_rot_y);
+        draw_text(800.0f, 230.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", obj_3d_x, obj_3d_y, obj_3d_z);
+        draw_text(800.0f, 190.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+
+        if (is_lighting_enabled) {
+            draw_text(800.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
+            snprintf(rot_buf, sizeof(rot_buf), "GLfloat light_pos[4] = { %.1ff, %.1ff, %.1ff, 1.0f };", light_3d_x, light_3d_y, light_3d_z);
+            draw_text(800.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+            if (selected_shape == 0) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutSolidCube(%.2ff);", obj_3d_size);
+            } else if (selected_shape == 1) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutSolidSphere(%.2ff, 20, 20);", obj_3d_size * 0.6f);
+            } else if (selected_shape == 2) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutSolidCone(%.2ff, %.2ff, 20, 20);", obj_3d_size * 0.6f, obj_3d_size * 1.2f);
+            } else if (selected_shape == 3) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutSolidTorus(%.2ff, %.2ff, 20, 20);", obj_3d_size * 0.25f, obj_3d_size * 0.55f);
+            } else if (selected_shape == 4) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutSolidTeapot(%.2ff);", obj_3d_size * 0.7f);
+            }
+            draw_text(800.0f, 70.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        } else {
+            draw_text(800.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glDisable(GL_LIGHTING);");
+            if (selected_shape == 0) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutWireCube(%.2ff);", obj_3d_size);
+            } else if (selected_shape == 1) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutWireSphere(%.2ff, 20, 20);", obj_3d_size * 0.6f);
+            } else if (selected_shape == 2) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutWireCone(%.2ff, %.2ff, 20, 20);", obj_3d_size * 0.6f, obj_3d_size * 1.2f);
+            } else if (selected_shape == 3) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutWireTorus(%.2ff, %.2ff, 20, 20);", obj_3d_size * 0.25f, obj_3d_size * 0.55f);
+            } else if (selected_shape == 4) {
+                snprintf(rot_buf, sizeof(rot_buf), "glutWireTeapot(%.2ff);", obj_3d_size * 0.7f);
+            }
+            draw_text(800.0f, 110.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
+        }
     }
 
     glutSwapBuffers();
@@ -546,11 +814,16 @@ void visualizer_mouse(int button, int state, int x, int y) {
         if (state == GLUT_DOWN) {
             if (is_inside(mouse_pos.x, mouse_pos.y, 70.0f, 745.0f, 280.0f, 790.0f)) {
                 current_mode_3d = false;
-                is_2d_expanded = !is_2d_expanded;
+                is_2d_expanded = true;
+                is_3d_expanded = false;
+                selected_shape = 0;
             } else {
-                float current_y_3d_btn = is_2d_expanded ? 480.0f : 695.0f;
+                float current_y_3d_btn = !current_mode_3d ? 480.0f : 685.0f;
                 if (is_inside(mouse_pos.x, mouse_pos.y, 70.0f, current_y_3d_btn, 280.0f, current_y_3d_btn + 45.0f)) {
                     current_mode_3d = true;
+                    is_3d_expanded = true;
+                    is_2d_expanded = false;
+                    selected_shape = 0;
                 } else if (is_2d_expanded && !current_mode_3d) {
                     for (int i = 0; i < 4; i++) {
                         float y1 = 695.0f - i * 50.0f;
@@ -560,7 +833,20 @@ void visualizer_mouse(int button, int state, int x, int y) {
                             break;
                         }
                     }
+                } else if (is_3d_expanded && current_mode_3d) {
+                    for (int i = 0; i < 5; i++) {
+                        float y1 = 635.0f - i * 50.0f;
+                        float y2 = y1 + 40.0f;
+                        if (is_inside(mouse_pos.x, mouse_pos.y, 90.0f, y1, 280.0f, y2)) {
+                            selected_shape = i;
+                            break;
+                        }
+                    }
                 }
+            }
+
+            if (current_mode_3d && is_inside(mouse_pos.x, mouse_pos.y, 350.0f, 805.0f, 520.0f, 825.0f)) {
+                is_lighting_enabled = !is_lighting_enabled;
             }
 
             if (!current_mode_3d) {
@@ -578,9 +864,9 @@ void visualizer_mouse(int button, int state, int x, int y) {
 
                     if (!label1.empty()) {
                         float t1 = (val1 - min1) / (max1 - min1);
-                        float sx1 = 1350.0f + t1 * 150.0f;
+                        float sx1 = 1330.0f + t1 * 140.0f;
                         float sdx = mouse_pos.x - sx1;
-                        float sdy = mouse_pos.y - 670.0f;
+                        float sdy = mouse_pos.y - 700.0f;
                         if (std::sqrt(sdx*sdx + sdy*sdy) <= 15.0f) {
                             selected_point_index = 1;
                         }
@@ -588,12 +874,29 @@ void visualizer_mouse(int button, int state, int x, int y) {
 
                     if (!label2.empty() && selected_point_index == -1) {
                         float t2 = (val2 - min2) / (max2 - min2);
-                        float sx2 = 1350.0f + t2 * 150.0f;
+                        float sx2 = 1330.0f + t2 * 140.0f;
                         float sdx = mouse_pos.x - sx2;
-                        float sdy = mouse_pos.y - 590.0f;
+                        float sdy = mouse_pos.y - 645.0f;
                         if (std::sqrt(sdx*sdx + sdy*sdy) <= 15.0f) {
                             selected_point_index = 2;
                         }
+                    }
+                }
+            } else {
+                int max_sliders = is_lighting_enabled ? 7 : 4;
+                for (int idx = 1; idx <= max_sliders; idx++) {
+                    float min_val, max_val;
+                    std::string label;
+                    float val;
+                    get_slider_limits_3d(idx, &min_val, &max_val, label, &val);
+                    float t = (val - min_val) / (max_val - min_val);
+                    float sx = 1330.0f + t * 140.0f;
+                    float rail_y = 750.0f - (idx - 1) * 55.0f;
+                    float sdx = mouse_pos.x - sx;
+                    float sdy = mouse_pos.y - rail_y;
+                    if (std::sqrt(sdx*sdx + sdy*sdy) <= 15.0f) {
+                        selected_point_index = idx;
+                        break;
                     }
                 }
             }
@@ -613,22 +916,26 @@ void visualizer_mouse(int button, int state, int x, int y) {
 }
 
 void visualizer_motion(int x, int y) {
-    if (right_button_down && current_mode_3d) {
+    if (right_button_down) {
         int dx = x - last_mouse_x;
         int dy = y - last_mouse_y;
-        camera_rot_y += (float)dx * 0.5f;
-        camera_rot_x += (float)dy * 0.5f;
+        if (current_mode_3d) {
+            camera_rot_y += (float)dx * 0.5f;
+            camera_rot_x += (float)dy * 0.5f;
+        } else {
+            camera_pos_y -= (float)dy * 1.25f;
+        }
         last_mouse_x = x;
         last_mouse_y = y;
         glutPostRedisplay();
         return;
     }
 
-    if (!current_mode_3d) {
-        Point2D mouse_pos = map_mouse_to_ortho(x, y);
-        hover_mouse_x = mouse_pos.x;
-        hover_mouse_y = mouse_pos.y;
+    Point2D mouse_pos = map_mouse_to_ortho(x, y);
+    hover_mouse_x = mouse_pos.x;
+    hover_mouse_y = mouse_pos.y;
 
+    if (!current_mode_3d) {
         if (selected_point_index == 0) {
             shape_x = mouse_pos.x;
             shape_y = mouse_pos.y;
@@ -637,7 +944,7 @@ void visualizer_motion(int x, int y) {
             if (shape_y < 360.0f) shape_y = 360.0f;
             if (shape_y > 840.0f) shape_y = 840.0f;
         } else if (selected_point_index == 1) {
-            float t = (mouse_pos.x - 1350.0f) / 150.0f;
+            float t = (mouse_pos.x - 1330.0f) / 140.0f;
             if (t < 0.0f) t = 0.0f;
             if (t > 1.0f) t = 1.0f;
 
@@ -646,7 +953,7 @@ void visualizer_motion(int x, int y) {
             get_slider_limits(selected_shape, &min1, &max1, &min2, &max2, label1, label2);
             set_param_1(min1 + t * (max1 - min1));
         } else if (selected_point_index == 2) {
-            float t = (mouse_pos.x - 1350.0f) / 150.0f;
+            float t = (mouse_pos.x - 1330.0f) / 140.0f;
             if (t < 0.0f) t = 0.0f;
             if (t > 1.0f) t = 1.0f;
 
@@ -655,8 +962,21 @@ void visualizer_motion(int x, int y) {
             get_slider_limits(selected_shape, &min1, &max1, &min2, &max2, label1, label2);
             set_param_2(min2 + t * (max2 - min2));
         }
-        glutPostRedisplay();
+    } else {
+        int max_sliders = is_lighting_enabled ? 7 : 4;
+        if (selected_point_index >= 1 && selected_point_index <= max_sliders) {
+            float t = (mouse_pos.x - 1330.0f) / 140.0f;
+            if (t < 0.0f) t = 0.0f;
+            if (t > 1.0f) t = 1.0f;
+
+            float min_val, max_val;
+            std::string label;
+            float val;
+            get_slider_limits_3d(selected_point_index, &min_val, &max_val, label, &val);
+            set_slider_val_3d(selected_point_index, min_val + t * (max_val - min_val));
+        }
     }
+    glutPostRedisplay();
 }
 
 void visualizer_passive_motion(int x, int y) {
@@ -669,6 +989,37 @@ void visualizer_passive_motion(int x, int y) {
 void visualizer_keyboard(unsigned char key) {
     if (key == 27) {
         current_module = MENU;
+    } else if (key == 'r' || key == 'R') {
+        camera_rot_x = 20.0f;
+        camera_rot_y = -30.0f;
+        camera_pos_x = 0.0f;
+        camera_pos_y = 0.0f;
+        camera_pos_z = -5.0f;
+    } else if (key == 'z' || key == 'Z') {
+        shape_x = 790.0f;
+        shape_y = 600.0f;
+        point_size = 10.0f;
+        line_dx = 150.0f;
+        line_dy = 100.0f;
+        rect_w = 200.0f;
+        rect_h = 150.0f;
+        circle_r = 100.0f;
+        circle_seg = 32.0f;
+        obj_3d_size = 1.2f;
+        obj_3d_x = 0.0f;
+        obj_3d_y = 0.0f;
+        obj_3d_z = 0.0f;
+        light_3d_x = 1.0f;
+        light_3d_y = 1.5f;
+        light_3d_z = 2.0f;
+    } else if (key == 'w' || key == 'W') {
+        camera_pos_z += 0.1f;
+    } else if (key == 's' || key == 'S') {
+        camera_pos_z -= 0.1f;
+    } else if (key == 'a' || key == 'A') {
+        camera_pos_x -= 0.1f;
+    } else if (key == 'd' || key == 'D') {
+        camera_pos_x += 0.1f;
     }
     glutPostRedisplay();
 }
