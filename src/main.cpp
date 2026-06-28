@@ -1,9 +1,5 @@
 #include <GL/freeglut.h>
-#include "menu.h"
-
-// Variável para alternar entre os módulos
-typedef enum {MENU, BEZIER} module_type;
-module_type current_module = MENU;
+#include "modules.h"
 
 struct app_config {
     int window_width;
@@ -23,48 +19,6 @@ void init_app_state() {
     g_app.config.window_title = "OpenGL Visualizer";
 }
 
-// Função de callback para as funções de renderização
-void display_callback() {
-    switch(current_module) {
-        case MENU:
-            menu_display();
-            break;
-        case BEZIER:
-            break;
-    }
-}
-
-// Função de callback para reajustar a tela mantendo uma proporção 16:9
-void reshape_callback(int width, int height) {
-    // Proporção desejada
-    float target_aspect_ratio = 16.0f / 9.0f;
-    // Proporção atual da tela
-    float window_aspect_ratio = (float)width / (float)height;
-    // Largura, altura, posição x e posição y da viewport
-    int viewport_width, viewport_height, viewport_x = 0, viewport_y = 0;
-
-    if (height == 0) height = 1; // Impede divisões por 0
-
-    // Se a proporção da tela for maior que a proporção desejada:
-    // Define a altura do viewport como a altura da tela e encontra a largura com base na proporção
-    // Se a proporção da tela for menor que a proporção desejada:
-    // Define a largura do viewport como a largura da tela e encontra a altura com base na proporção
-    if (window_aspect_ratio > target_aspect_ratio) {
-        viewport_height = height;
-        viewport_width = (int)(height * target_aspect_ratio);
-        viewport_x = (width - viewport_width) / 2;
-    } else {
-        viewport_width = width;
-        viewport_height = (int)(width / target_aspect_ratio);
-        viewport_y = (height - viewport_height) / 2;
-    }
-
-    // Posiciona a viewport no centro da tela mantendo a proporção
-    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
-    glutPostRedisplay();
-}
-
-
 int main(int argc, char** argv) {
     init_app_state();
 
@@ -76,6 +30,9 @@ int main(int argc, char** argv) {
 
     glutDisplayFunc(display_callback);
     glutReshapeFunc(reshape_callback);
+    glutMouseFunc(mouse_callback);
+    glutMotionFunc(motion_callback);
+    glutKeyboardFunc(keyboard_callback);
     
     glutMainLoop();
     return 0;
