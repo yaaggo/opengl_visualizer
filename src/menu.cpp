@@ -8,6 +8,21 @@ static int menu_mouse_x = 0;
 static int menu_mouse_y = 0;
 static int menu_click_state = -1;
 
+static void draw_stroke_text_centered(float center_x, float center_y, float scale, float line_width, const std::string& text) {
+    glPushMatrix();
+    glLineWidth(line_width);
+    float text_w = (float)glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*)text.c_str()) * scale;
+    float start_x = center_x - text_w / 2.0f;
+    float start_y = center_y - (119.0f * scale / 2.0f);
+    glTranslatef(start_x, start_y, 0.0f);
+    glScalef(scale, scale, scale);
+    for (char c : text) {
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+    }
+    glPopMatrix();
+    glLineWidth(1.0f);
+}
+
 void menu_display() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -66,12 +81,7 @@ void menu_display() {
     glEnd();
     glLineWidth(1.0f);
 
-    std::string bezier_label = "BEZIER";
-    int bezier_w = 0;
-    for (char c : bezier_label) {
-        bezier_w += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, c);
-    }
-    draw_text(b_center_x - (bezier_w / 2.0f), 234.0f, GLUT_BITMAP_HELVETICA_18, bezier_label);
+    draw_stroke_text_centered(b_center_x, 240.0f, 0.18f, 2.0f, "BEZIER");
 
     float vis_y1 = 135.0f;
     float vis_y2 = 185.0f;
@@ -107,12 +117,7 @@ void menu_display() {
     glEnd();
     glLineWidth(1.0f);
 
-    std::string vis_label = "VISUALIZER";
-    int vis_w = 0;
-    for (char c : vis_label) {
-        vis_w += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, c);
-    }
-    draw_text(b_center_x - (vis_w / 2.0f), 154.0f, GLUT_BITMAP_HELVETICA_18, vis_label);
+    draw_stroke_text_centered(b_center_x, 160.0f, 0.18f, 2.0f, "VISUALIZER");
 
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);

@@ -30,6 +30,7 @@ void mouse_callback(int button, int state, int x, int y) {
             bezier_mouse(button, state, x, y);
             break;
         case VISUALIZER:
+            visualizer_mouse(button, state, x, y);
             break;
     }
 }
@@ -43,6 +44,7 @@ void motion_callback(int x, int y) {
             bezier_motion(x, y);
             break;
         case VISUALIZER:
+            visualizer_motion(x, y);
             break;
     }
 }
@@ -55,6 +57,7 @@ void passive_motion_callback(int x, int y) {
         case BEZIER:
             break;
         case VISUALIZER:
+            visualizer_passive_motion(x, y);
             break;
     }
 }
