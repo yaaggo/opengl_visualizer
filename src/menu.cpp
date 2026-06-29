@@ -24,6 +24,10 @@ static void draw_stroke_text_centered(float center_x, float center_y, float scal
 }
 
 void menu_display() {
+    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0.0, 800.0, 0.0, 450.0);
@@ -31,7 +35,7 @@ void menu_display() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glClearColor(0.216f, 0.145f, 0.286f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -119,12 +123,48 @@ void menu_display() {
 
     draw_stroke_text_centered(b_center_x, 160.0f, 0.18f, 2.0f, "VISUALIZER");
 
+    float proj_y1 = 55.0f;
+    float proj_y2 = 105.0f;
+    bool hover_proj = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2);
+
+    if (hover_proj) {
+        if (menu_click_state == GLUT_DOWN) {
+            glColor3f(0.18f, 0.12f, 0.24f);
+        } else {
+            glColor3f(0.353f, 0.243f, 0.459f);
+        }
+    } else {
+        glColor3f(0.282f, 0.192f, 0.369f);
+    }
+    glBegin(GL_QUADS);
+    glVertex2f(b_x1, proj_y1);
+    glVertex2f(b_x2, proj_y1);
+    glVertex2f(b_x2, proj_y2);
+    glVertex2f(b_x1, proj_y2);
+    glEnd();
+
+    if (hover_proj) {
+        glColor3f(1.0f, 0.9f, 0.85f);
+    } else {
+        glColor3f(0.918f, 0.804f, 0.761f);
+    }
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(b_x1, proj_y1);
+    glVertex2f(b_x2, proj_y1);
+    glVertex2f(b_x2, proj_y2);
+    glVertex2f(b_x1, proj_y2);
+    glEnd();
+    glLineWidth(1.0f);
+
+    draw_stroke_text_centered(b_center_x, 80.0f, 0.18f, 2.0f, "PROJECTIONS");
+
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);
     glLineWidth(1.0f);
     glTranslatef(10.0f, 10.0f, 0.0f);
     glScalef(0.1f, 0.1f, 0.1f);
-    glutStrokeString(GLUT_STROKE_ROMAN, (unsigned char*)"Feito por: Gabriel Coelho, Rafael Emanuel, Lucas Ferreira e Yago Guirra.");
+    glutStrokeString(GLUT_STROKE_ROMAN, (unsigned char*)"Feito por: Gabriel Coelho, Pedro Lucas, Rafael Emanuel e Yago Guirra.");
     glPopMatrix();
 
     glutSwapBuffers();
@@ -147,12 +187,16 @@ void menu_mouse(int button, int state, int x, int y) {
         float bezier_y2 = 265.0f;
         float vis_y1 = 135.0f;
         float vis_y2 = 185.0f;
+        float proj_y1 = 55.0f;
+        float proj_y2 = 105.0f;
 
         if (state == GLUT_UP) {
             if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= bezier_y1 && menu_mouse_y <= bezier_y2) {
                 current_module = BEZIER;
             } else if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= vis_y1 && menu_mouse_y <= vis_y2) {
                 current_module = VISUALIZER;
+            } else if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2) {
+                current_module = PROJECTIONS;
             }
         }
     }
