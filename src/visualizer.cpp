@@ -34,6 +34,8 @@ static float circle_r = 100.0f;
 static float circle_seg = 32.0f;
 
 static bool is_lighting_enabled = true;
+static bool is_texture_enabled = true;
+static GLuint crate_texture_id = 0;
 static int current_page_idx = 1;
 
 static float obj_3d_x = 0.0f;
@@ -218,7 +220,53 @@ static void draw_bitmap_text_centered(float x1, float x2, float y, void* font, c
     draw_text(start_x, y, font, text);
 }
 
+void draw_textured_cube(float size) {
+    float h = size / 2.0f;
+    glBegin(GL_QUADS);
+    // Front face
+    glNormal3f(0.0f, 0.0f, 1.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-h, -h,  h);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( h, -h,  h);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( h,  h,  h);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-h,  h,  h);
+    // Back face
+    glNormal3f(0.0f, 0.0f, -1.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(-h, -h, -h);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(-h,  h, -h);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f( h,  h, -h);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f( h, -h, -h);
+    // Top face
+    glNormal3f(0.0f, 1.0f, 0.0f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-h,  h, -h);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-h,  h,  h);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( h,  h,  h);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( h,  h, -h);
+    // Bottom face
+    glNormal3f(0.0f, -1.0f, 0.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(-h, -h, -h);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f( h, -h, -h);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f( h, -h,  h);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(-h, -h,  h);
+    // Right face
+    glNormal3f(1.0f, 0.0f, 0.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( h, -h, -h);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( h,  h, -h);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f( h,  h,  h);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f( h, -h,  h);
+    // Left face
+    glNormal3f(-1.0f, 0.0f, 0.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-h, -h, -h);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(-h, -h,  h);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(-h,  h,  h);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-h,  h, -h);
+    glEnd();
+}
+
 void visualizer_display() {
+    if (crate_texture_id == 0) {
+        crate_texture_id = load_texture("assets/crate.png");
+    }
+
     if (!is_lighting_enabled) {
         current_page_idx = 1;
     }
@@ -509,7 +557,9 @@ void visualizer_display() {
         glLoadIdentity();
         glEnable(GL_DEPTH_TEST);
 
-        glTranslatef(camera_pos_x, camera_pos_y, camera_pos_z);
+        gluLookAt(-camera_pos_x, -camera_pos_y, -camera_pos_z,
+                  -camera_pos_x, -camera_pos_y, 0.0f,
+                  0.0f, 1.0f, 0.0f);
         glRotatef(camera_rot_x, 1.0f, 0.0f, 0.0f);
         glRotatef(camera_rot_y, 0.0f, 1.0f, 0.0f);
 
@@ -586,8 +636,37 @@ void visualizer_display() {
         glColor3f(0.851f, 0.753f, 0.949f);
 
         if (is_lighting_enabled) {
+            GLfloat mat_ambient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+            GLfloat mat_diffuse[] = { 0.851f, 0.753f, 0.949f, 1.0f };
+            if (is_texture_enabled) {
+                mat_diffuse[0] = 1.0f; mat_diffuse[1] = 1.0f; mat_diffuse[2] = 1.0f;
+            }
+            GLfloat mat_specular[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+            GLfloat mat_shininess[] = { 50.0f };
+            
+            glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+            glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+            glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+            
+            if (is_texture_enabled) {
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(GL_TEXTURE_2D, crate_texture_id);
+                // Activar texgen p/ outras primitivas alem do cubo/teapot que nao tem coord nativa
+                glEnable(GL_TEXTURE_GEN_S);
+                glEnable(GL_TEXTURE_GEN_T);
+                glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+                glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+                GLfloat s_plane[] = { 1.0f / obj_3d_size, 0.0f, 0.0f, 0.0f };
+                GLfloat t_plane[] = { 0.0f, 1.0f / obj_3d_size, 0.0f, 0.0f };
+                glTexGenfv(GL_S, GL_OBJECT_PLANE, s_plane);
+                glTexGenfv(GL_T, GL_OBJECT_PLANE, t_plane);
+            }
+
             if (selected_shape == 0) {
-                glutSolidCube(obj_3d_size);
+                glDisable(GL_TEXTURE_GEN_S); // Cube usa coordenadas customizadas
+                glDisable(GL_TEXTURE_GEN_T);
+                draw_textured_cube(obj_3d_size);
             } else if (selected_shape == 1) {
                 glutSolidSphere(obj_3d_size * 0.6f, 20, 20);
             } else if (selected_shape == 2) {
@@ -595,7 +674,15 @@ void visualizer_display() {
             } else if (selected_shape == 3) {
                 glutSolidTorus(obj_3d_size * 0.25f, obj_3d_size * 0.55f, 20, 20);
             } else if (selected_shape == 4) {
+                glDisable(GL_TEXTURE_GEN_S); // Teapot tem coordenadas nativas
+                glDisable(GL_TEXTURE_GEN_T);
                 glutSolidTeapot(obj_3d_size * 0.7f);
+            }
+            
+            if (is_texture_enabled) {
+                glDisable(GL_TEXTURE_2D);
+                glDisable(GL_TEXTURE_GEN_S);
+                glDisable(GL_TEXTURE_GEN_T);
             }
         } else {
             glLineWidth(1.5f);
@@ -635,8 +722,12 @@ void visualizer_display() {
     glLoadIdentity();
 
     glColor3f(0.918f, 0.804f, 0.761f);
+    glColor3f(0.918f, 0.804f, 0.761f);
     draw_text(1115.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Cam");
     draw_text(1115.0f, 795.0f, GLUT_BITMAP_HELVETICA_18, "Z - Reset Pos");
+    if (current_mode_3d) {
+        draw_text(1115.0f, 770.0f, GLUT_BITMAP_HELVETICA_18, is_texture_enabled ? "T - Textura [ON]" : "T - Textura [OFF]");
+    }
 
     if (current_mode_3d) {
         glColor3f(0.918f, 0.804f, 0.761f);
@@ -901,9 +992,9 @@ void visualizer_display() {
         draw_text(70.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect_ratio, 0.1, 100.0);");
         draw_text(70.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
         draw_text(70.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
-        snprintf(rot_buf, sizeof(rot_buf), "glTranslatef(%.2ff, %.2ff, %.2ff);", camera_pos_x, camera_pos_y, camera_pos_z);
+        snprintf(rot_buf, sizeof(rot_buf), "gluLookAt(%.1f, %.1f, %.1f, %.1f, %.1f, 0, 0, 1, 0);", -camera_pos_x, -camera_pos_y, -camera_pos_z, -camera_pos_x, -camera_pos_y);
         draw_text(70.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
-        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0f, 0.0f, 0.0f); glRotatef(%.1ff, 0.0f, 1.0f, 0.0f);", camera_rot_x, camera_rot_y);
+        snprintf(rot_buf, sizeof(rot_buf), "glRotatef(%.1ff, 1.0, 0.0, 0.0); glRotatef(%.1ff, 0.0, 1.0, 0.0);", camera_rot_x, camera_rot_y);
         draw_text(70.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
 
         draw_bitmap_text_centered(550.0f, 1040.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "ROTACAO & TRANSLACAO SOLIDO");
@@ -923,7 +1014,7 @@ void visualizer_display() {
             snprintf(rot_buf, sizeof(rot_buf), "GLfloat pos[4] = { %.1ff, %.1ff, %.1ff, 1.0f };", light_3d_x, light_3d_y, light_3d_z);
             draw_text(1080.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, rot_buf);
             draw_text(1080.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_POSITION, pos);");
-            draw_text(1080.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glColor3f(0.851f, 0.753f, 0.949f);");
+            draw_text(1080.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);");
             if (selected_shape == 0) {
                 snprintf(rot_buf, sizeof(rot_buf), "glutSolidCube(%.2ff);", obj_3d_size);
             } else if (selected_shape == 1) {
@@ -1165,7 +1256,11 @@ void visualizer_keyboard(unsigned char key) {
         camera_pos_z = -5.0f;
         camera_2d_pos_x = 0.0f;
         camera_2d_pos_y = 0.0f;
-    } else if (lower_key == 'z') {
+    }
+    if (key == 't' || key == 'T') {
+        is_texture_enabled = !is_texture_enabled;
+    }
+    if (lower_key == 'z') {
         shape_x = 790.0f;
         shape_y = 600.0f;
         point_size = 10.0f;
