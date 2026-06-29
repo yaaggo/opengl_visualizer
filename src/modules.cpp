@@ -3,6 +3,7 @@
 #include "menu.h"
 #include "bezier.h"
 #include "visualizer.h"
+#include "projections.h"
 
 module_type current_module = MENU;
 int viewport_width, viewport_height, viewport_x = 0, viewport_y = 0;
@@ -18,6 +19,8 @@ void display_callback() {
         case VISUALIZER:
             visualizer_display();
             break;
+        case PROJECTIONS:
+            projections_display();
     }
 }
 
@@ -31,6 +34,8 @@ void mouse_callback(int button, int state, int x, int y) {
             break;
         case VISUALIZER:
             visualizer_mouse(button, state, x, y);
+            break;
+        case PROJECTIONS:
             break;
     }
 }
@@ -46,6 +51,8 @@ void motion_callback(int x, int y) {
         case VISUALIZER:
             visualizer_motion(x, y);
             break;
+        case PROJECTIONS:
+            break;
     }
 }
 
@@ -58,6 +65,8 @@ void passive_motion_callback(int x, int y) {
             break;
         case VISUALIZER:
             visualizer_passive_motion(x, y);
+            break;
+        case PROJECTIONS:
             break;
     }
 }
@@ -77,6 +86,9 @@ void keyboard_callback(unsigned char key, int x, int y) {
         case VISUALIZER:
             visualizer_keyboard(key);
             break;
+        case PROJECTIONS:
+            projections_keyboard(key);
+            break;
     }
 }
 
@@ -90,6 +102,8 @@ void keyboard_up_callback(unsigned char key, int x, int y) {
             break;
         case VISUALIZER:
             visualizer_keyboard_up(key);
+            break;
+        case PROJECTIONS:
             break;
     }
 }

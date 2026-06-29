@@ -119,6 +119,42 @@ void menu_display() {
 
     draw_stroke_text_centered(b_center_x, 160.0f, 0.18f, 2.0f, "VISUALIZER");
 
+    float proj_y1 = 55.0f;
+    float proj_y2 = 105.0f;
+    bool hover_proj = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2);
+
+    if (hover_proj) {
+        if (menu_click_state == GLUT_DOWN) {
+            glColor3f(0.18f, 0.12f, 0.24f);
+        } else {
+            glColor3f(0.353f, 0.243f, 0.459f);
+        }
+    } else {
+        glColor3f(0.282f, 0.192f, 0.369f);
+    }
+    glBegin(GL_QUADS);
+    glVertex2f(b_x1, proj_y1);
+    glVertex2f(b_x2, proj_y1);
+    glVertex2f(b_x2, proj_y2);
+    glVertex2f(b_x1, proj_y2);
+    glEnd();
+
+    if (hover_proj) {
+        glColor3f(1.0f, 0.9f, 0.85f);
+    } else {
+        glColor3f(0.918f, 0.804f, 0.761f);
+    }
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(b_x1, proj_y1);
+    glVertex2f(b_x2, proj_y1);
+    glVertex2f(b_x2, proj_y2);
+    glVertex2f(b_x1, proj_y2);
+    glEnd();
+    glLineWidth(1.0f);
+
+    draw_stroke_text_centered(b_center_x, 80.0f, 0.18f, 2.0f, "PROJECTIONS");
+
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);
     glLineWidth(1.0f);
@@ -147,12 +183,16 @@ void menu_mouse(int button, int state, int x, int y) {
         float bezier_y2 = 265.0f;
         float vis_y1 = 135.0f;
         float vis_y2 = 185.0f;
+        float proj_y1 = 55.0f;
+        float proj_y2 = 105.0f;
 
         if (state == GLUT_UP) {
             if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= bezier_y1 && menu_mouse_y <= bezier_y2) {
                 current_module = BEZIER;
             } else if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= vis_y1 && menu_mouse_y <= vis_y2) {
                 current_module = VISUALIZER;
+            } else if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2) {
+                current_module = PROJECTIONS;
             }
         }
     }
