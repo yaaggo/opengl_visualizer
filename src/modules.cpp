@@ -74,8 +74,13 @@ void passive_motion_callback(int x, int y) {
 void keyboard_callback(unsigned char key, int x, int y) {
     (void)x;
     (void)y;
-    if (key == 27 && current_module == MENU) {
-        exit(0);
+    if (key == 27) {
+        if (current_module == MENU) {
+            exit(0);
+        }
+        current_module = MENU;
+        glutPostRedisplay();
+        return;
     }
     switch (current_module) {
         case MENU:
@@ -88,6 +93,22 @@ void keyboard_callback(unsigned char key, int x, int y) {
             break;
         case PROJECTIONS:
             projections_keyboard(key);
+            break;
+    }
+}
+
+void special_callback(int key, int x, int y) {
+    (void)x;
+    (void)y;
+    switch (current_module) {
+        case MENU:
+            break;
+        case BEZIER:
+            break;
+        case VISUALIZER:
+            break;
+        case PROJECTIONS:
+            projections_special(key);
             break;
     }
 }

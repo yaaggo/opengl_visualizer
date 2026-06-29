@@ -12,6 +12,7 @@ void motion_callback(int x, int y);
 void passive_motion_callback(int x, int y);
 void keyboard_callback(unsigned char key, int x, int y);
 void keyboard_up_callback(unsigned char key, int x, int y);
+void special_callback(int key, int x, int y);
 void timer_callback(int value);
 
 #endif

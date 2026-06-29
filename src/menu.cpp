@@ -24,6 +24,10 @@ static void draw_stroke_text_centered(float center_x, float center_y, float scal
 }
 
 void menu_display() {
+    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0.0, 800.0, 0.0, 450.0);
@@ -31,7 +35,7 @@ void menu_display() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glClearColor(0.216f, 0.145f, 0.286f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -160,7 +164,7 @@ void menu_display() {
     glLineWidth(1.0f);
     glTranslatef(10.0f, 10.0f, 0.0f);
     glScalef(0.1f, 0.1f, 0.1f);
-    glutStrokeString(GLUT_STROKE_ROMAN, (unsigned char*)"Feito por: Gabriel Coelho, Rafael Emanuel, Lucas Ferreira e Yago Guirra.");
+    glutStrokeString(GLUT_STROKE_ROMAN, (unsigned char*)"Feito por: Gabriel Coelho, Pedro Lucas, Rafael Emanuel e Yago Guirra.");
     glPopMatrix();
 
     glutSwapBuffers();
