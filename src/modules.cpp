@@ -36,6 +36,7 @@ void mouse_callback(int button, int state, int x, int y) {
             visualizer_mouse(button, state, x, y);
             break;
         case PROJECTIONS:
+            projections_mouse(button, state, x, y);
             break;
     }
 }
@@ -52,6 +53,7 @@ void motion_callback(int x, int y) {
             visualizer_motion(x, y);
             break;
         case PROJECTIONS:
+            projections_motion(x, y);
             break;
     }
 }
@@ -133,6 +135,8 @@ void timer_callback(int value) {
     (void)value;
     if (current_module == VISUALIZER) {
         visualizer_update();
+    } else if (current_module == PROJECTIONS) {
+        projections_update();
     }
     glutPostRedisplay();
     glutTimerFunc(16, timer_callback, 0);
