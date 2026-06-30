@@ -264,8 +264,10 @@ void draw_textured_cube(float size) {
 }
 
 void visualizer_display() {
-    if (crate_texture_id == 0) {
+    static bool crate_load_attempted = false;
+    if (!crate_load_attempted) {
         crate_texture_id = load_texture("assets/crate.png");
+        crate_load_attempted = true;
     }
 
     if (!is_lighting_enabled) {

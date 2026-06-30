@@ -124,13 +124,12 @@ static void draw_container(float x1, float y1, float x2, float y2) {
     glLineWidth(1.0f);
 }
 
-static void draw_stroke_text_centered(float center_x, float center_y, float scale, float line_width, const std::string& text) {
+
+static void draw_stroke_text_left(float x, float center_y, float scale, float line_width, const std::string& text) {
     glPushMatrix();
     glLineWidth(line_width);
-    float text_w = (float)glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*)text.c_str()) * scale;
-    float start_x = center_x - text_w / 2.0f;
     float start_y = center_y - (119.0f * scale / 2.0f);
-    glTranslatef(start_x, start_y, 0.0f);
+    glTranslatef(x, start_y, 0.0f);
     glScalef(scale, scale, scale);
     for (char c : text) {
         glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
@@ -253,9 +252,26 @@ void texture_display() {
     glEnd();
     glLineWidth(1.0f);
 
-    // Left Panel Contents: Texture Selector
-    glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(85.0f, 815.0f, GLUT_BITMAP_HELVETICA_18, "TEXTURAS");
+    // Left Panel Contents: Texture Selector (Title with Highlight Box)
+    glColor3f(0.282f, 0.192f, 0.369f); // Lighter purple highlight
+    glBegin(GL_QUADS);
+    glVertex2f(70.0f, 800.0f);
+    glVertex2f(280.0f, 800.0f);
+    glVertex2f(280.0f, 835.0f);
+    glVertex2f(70.0f, 835.0f);
+    glEnd();
+
+    glColor3f(0.918f, 0.804f, 0.761f); // Beige border
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(70.0f, 800.0f);
+    glVertex2f(280.0f, 800.0f);
+    glVertex2f(280.0f, 835.0f);
+    glVertex2f(70.0f, 835.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    draw_bitmap_text_centered(70.0f, 280.0f, 811.0f, GLUT_BITMAP_HELVETICA_18, "TEXTURAS");
 
     std::string text_labels[4] = { "1. MADEIRA", "2. METAL", "3. SCI-FI", "4. PEDRA" };
     for (int i = 0; i < 4; i++) {
@@ -286,7 +302,8 @@ void texture_display() {
         glVertex2f(90.0f, y2);
         glEnd();
 
-        draw_stroke_text_centered(185.0f, (y1 + y2) / 2.0f, 0.12f, 1.5f, text_labels[i]);
+        // Left-align text inside button to keep numbers aligned
+        draw_stroke_text_left(125.0f, (y1 + y2) / 2.0f, 0.12f, 1.5f, text_labels[i]);
     }
 
     // Viewport coordinates math
@@ -464,28 +481,28 @@ void texture_display() {
     char code_buf[128];
     // Panel 1
     draw_bitmap_text_centered(50.0f, 530.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "CENA & CAMERA (3D)");
-    draw_text(70.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
-    draw_text(70.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, "gluPerspective(45.0, aspect, 0.1, 100.0);");
-    draw_text(70.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
+    draw_text(70.0f, 240.0f, GLUT_BITMAP_HELVETICA_12, "glMatrixMode(GL_PROJECTION);");
+    draw_text(70.0f, 215.0f, GLUT_BITMAP_HELVETICA_12, "gluPerspective(45.0, aspect, 0.1, 100.0);");
+    draw_text(70.0f, 190.0f, GLUT_BITMAP_HELVETICA_12, "glMatrixMode(GL_MODELVIEW);");
     snprintf(code_buf, sizeof(code_buf), "gluLookAt(%.1f, %.1f, %.1f, %.1f, %.1f, 0, 0, 1, 0);", -camera_pos_x, -camera_pos_y, -camera_pos_z, -camera_pos_x, -camera_pos_y);
-    draw_text(70.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+    draw_text(70.0f, 165.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
     snprintf(code_buf, sizeof(code_buf), "glRotatef(%.1ff, 1, 0, 0); glRotatef(%.1ff, 0, 1, 0);", camera_rot_x, camera_rot_y);
-    draw_text(70.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+    draw_text(70.0f, 140.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
     snprintf(code_buf, sizeof(code_buf), "glRotatef(%.1ff, 0, 1, 0); draw_cube(2.0f);", cube_rot_y);
-    draw_text(70.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+    draw_text(70.0f, 115.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
 
     // Panel 2
     draw_bitmap_text_centered(550.0f, 1040.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "ILUMINACAO GLOBAL");
-    draw_text(570.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
+    draw_text(570.0f, 240.0f, GLUT_BITMAP_HELVETICA_12, "glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);");
     snprintf(code_buf, sizeof(code_buf), "GLfloat pos[4] = { %.1ff, %.1ff, %.1ff, 1.0f };", light_pos_x, light_pos_y, light_pos_z);
-    draw_text(570.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+    draw_text(570.0f, 215.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
     snprintf(code_buf, sizeof(code_buf), "GLfloat amb[4] = { %.2ff, %.2ff, %.2ff, 1.0f };", light_ambient_val * light_intensity, light_ambient_val * light_intensity, light_ambient_val * light_intensity);
-    draw_text(570.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
+    draw_text(570.0f, 190.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
     snprintf(code_buf, sizeof(code_buf), "GLfloat diff[4] = { %.2ff, %.2ff, %.2ff, 1.0f };", light_diffuse_val * light_intensity, light_diffuse_val * light_intensity, light_diffuse_val * light_intensity);
-    draw_text(570.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-    draw_text(570.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_POSITION, pos);");
-    draw_text(570.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_AMBIENT, amb);");
-    draw_text(570.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, "glLightfv(GL_LIGHT0, GL_DIFFUSE, diff);");
+    draw_text(570.0f, 165.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
+    draw_text(570.0f, 140.0f, GLUT_BITMAP_HELVETICA_12, "glLightfv(GL_LIGHT0, GL_POSITION, pos);");
+    draw_text(570.0f, 115.0f, GLUT_BITMAP_HELVETICA_12, "glLightfv(GL_LIGHT0, GL_AMBIENT, amb);");
+    draw_text(570.0f, 90.0f, GLUT_BITMAP_HELVETICA_12, "glLightfv(GL_LIGHT0, GL_DIFFUSE, diff);");
 
     // Panel 3
     draw_bitmap_text_centered(1060.0f, 1550.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "MAPEAMENTO DE TEXTURA");
@@ -495,14 +512,14 @@ void texture_display() {
     else if (selected_texture_idx == 3) tex_path = "assets/crate_stone.jpg";
 
     snprintf(code_buf, sizeof(code_buf), "tex_id = load_texture(\"%s\");", tex_path.c_str());
-    draw_text(1080.0f, 240.0f, GLUT_BITMAP_HELVETICA_18, "glEnable(GL_TEXTURE_2D);");
-    draw_text(1080.0f, 210.0f, GLUT_BITMAP_HELVETICA_18, code_buf);
-    draw_text(1080.0f, 180.0f, GLUT_BITMAP_HELVETICA_18, "glBindTexture(GL_TEXTURE_2D, tex_id);");
-    draw_text(1080.0f, 150.0f, GLUT_BITMAP_HELVETICA_18, "glBegin(GL_QUADS);");
-    draw_text(1080.0f, 120.0f, GLUT_BITMAP_HELVETICA_18, "  glNormal3f(0.0f, 0.0f, 1.0f);");
-    draw_text(1080.0f, 90.0f, GLUT_BITMAP_HELVETICA_18, "  glTexCoord2f(0.0f, 0.0f); glVertex3f(-1,-1, 1);");
-    draw_text(1080.0f, 60.0f, GLUT_BITMAP_HELVETICA_18, "  // ... outras faces do cubo ...");
-    draw_text(1080.0f, 30.0f, GLUT_BITMAP_HELVETICA_18, "glEnd(); glDisable(GL_TEXTURE_2D);");
+    draw_text(1080.0f, 240.0f, GLUT_BITMAP_HELVETICA_12, "glEnable(GL_TEXTURE_2D);");
+    draw_text(1080.0f, 215.0f, GLUT_BITMAP_HELVETICA_12, code_buf);
+    draw_text(1080.0f, 190.0f, GLUT_BITMAP_HELVETICA_12, "glBindTexture(GL_TEXTURE_2D, tex_id);");
+    draw_text(1080.0f, 165.0f, GLUT_BITMAP_HELVETICA_12, "glBegin(GL_QUADS);");
+    draw_text(1080.0f, 140.0f, GLUT_BITMAP_HELVETICA_12, "  glNormal3f(0.0f, 0.0f, 1.0f);");
+    draw_text(1080.0f, 115.0f, GLUT_BITMAP_HELVETICA_12, "  glTexCoord2f(0.0f, 0.0f); glVertex3f(-1,-1, 1);");
+    draw_text(1080.0f, 90.0f, GLUT_BITMAP_HELVETICA_12, "  // ... outras faces do cubo ...");
+    draw_text(1080.0f, 65.0f, GLUT_BITMAP_HELVETICA_12, "glEnd(); glDisable(GL_TEXTURE_2D);");
 
     glutSwapBuffers();
 }
