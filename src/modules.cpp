@@ -69,6 +69,7 @@ void passive_motion_callback(int x, int y) {
             visualizer_passive_motion(x, y);
             break;
         case PROJECTIONS:
+            projections_passive_motion(x, y);
             break;
     }
 }
