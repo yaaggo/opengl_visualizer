@@ -1,3 +1,9 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <GL/freeglut.h>
+#include <string>
+
 // Função para checar a colisão entre dois objetos
 bool collision(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2);
 
@@ -6,3 +12,8 @@ void draw_text(float x, float y, void *font, const std::string& text);
 
 // Função auxiliar para desenhar círculos
 void draw_circle(float cx, float cy, float radius, int segments);
+
+// Carrega uma textura de arquivo
+GLuint load_texture(const char* path);
+
+#endif
