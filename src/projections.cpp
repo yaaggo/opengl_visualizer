@@ -187,42 +187,9 @@ static void draw_container(float x1, float y1, float x2, float y2) {
     glLineWidth(1.0f);
 }
 
-static void draw_filled_rect(float x1, float y1, float x2, float y2, float r, float g, float b) {
-    glColor3f(r, g, b);
-    glBegin(GL_QUADS);
-    glVertex2f(x1, y1);
-    glVertex2f(x2, y1);
-    glVertex2f(x2, y2);
-    glVertex2f(x1, y2);
-    glEnd();
-}
 
-static void draw_view_label(float x, float y, const std::string& title, const std::string& subtitle) {
-    draw_filled_rect(x, y, x + 250.0f, y + 46.0f, 0.145f, 0.090f, 0.204f);
-    glColor3f(0.941f, 0.839f, 0.780f);
-    draw_text(x + 12.0f, y + 19.0f, GLUT_BITMAP_HELVETICA_18, title);
-    glColor3f(0.690f, 0.620f, 0.780f);
-    draw_text(x + 12.0f, y + 36.0f, GLUT_BITMAP_HELVETICA_12, subtitle);
-}
 
-static void draw_section_title(float x, float y, const std::string& text) {
-    glColor3f(0.690f, 0.620f, 0.780f);
-    draw_text(x, y, GLUT_BITMAP_HELVETICA_12, text);
-}
 
-static void draw_value_text(float x, float y, int var_index, const std::string& text) {
-    if (selected_var == var_index) {
-        float text_w = 0.0f;
-        for (char c : text) {
-            text_w += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, c);
-        }
-        draw_filled_rect(x - 8.0f, y - 17.0f, x + text_w + 8.0f, y + 8.0f, 0.451f, 0.192f, 0.271f);
-        glColor3f(1.0f, 0.820f, 0.650f);
-    } else {
-        glColor3f(0.918f, 0.804f, 0.761f);
-    }
-    draw_text(x, y, GLUT_BITMAP_HELVETICA_18, text);
-}
 
 void draw_axes() {
     glLineWidth(2.0f);
@@ -365,43 +332,349 @@ void draw_frustum() {
     glLineWidth(1.0f);
 }
 
+struct Point2D {
+    float x;
+    float y;
+};
+
+static float hover_mouse_x = 0.0f;
+static float hover_mouse_y = 0.0f;
+
+static Point2D map_mouse_to_ortho(int x, int y) {
+    int local_x = x - viewport_x;
+    int local_y = y - viewport_y;
+    Point2D mapped;
+    mapped.x = ((float)local_x / viewport_width) * 1600.0f;
+    mapped.y = (1.0f - (float)local_y / viewport_height) * 900.0f;
+    return mapped;
+}
+
+static bool is_inside(float px, float py, float x1, float y1, float x2, float y2) {
+    return (px >= x1 && px <= x2 && py >= y1 && py <= y2);
+}
+
+static void clamp_proj_vars() {
+    if (current_proj == PERSP) {
+        if (p_zNear < 0.1f) p_zNear = 0.1f;
+        if (p_zFar < p_zNear + 0.5f) p_zFar = p_zNear + 0.5f;
+        if (p_fovy < 10.0f) p_fovy = 10.0f;
+        if (p_fovy > 170.0f) p_fovy = 170.0f;
+    } else {
+        if (o_zNear < 0.1f) o_zNear = 0.1f;
+        if (o_zFar < o_zNear + 0.5f) o_zFar = o_zNear + 0.5f;
+        if (o_size < 1.0f) o_size = 1.0f;
+    }
+    if (custom_aspect < 0.2f) custom_aspect = 0.2f;
+    if (custom_aspect > 3.0f) custom_aspect = 3.0f;
+}
+
+static void get_slider_limits_proj(int idx, float* min_val, float* max_val, std::string& label, float* val) {
+    switch (idx) {
+        case 1:
+            *min_val = -10.0f; *max_val = 10.0f; label = "Eye X"; *val = cam_eyeX;
+            break;
+        case 2:
+            *min_val = -10.0f; *max_val = 10.0f; label = "Eye Y"; *val = cam_eyeY;
+            break;
+        case 3:
+            *min_val = -20.0f; *max_val = 20.0f; label = "Eye Z"; *val = cam_eyeZ;
+            break;
+        case 4:
+            *min_val = -10.0f; *max_val = 10.0f; label = "Center X"; *val = cam_cX;
+            break;
+        case 5:
+            *min_val = -10.0f; *max_val = 10.0f; label = "Center Y"; *val = cam_cY;
+            break;
+        case 6:
+            *min_val = -10.0f; *max_val = 10.0f; label = "Center Z"; *val = cam_cZ;
+            break;
+        case 7:
+            *min_val = -2.0f; *max_val = 2.0f; label = "Up X"; *val = cam_upX;
+            break;
+        case 8:
+            *min_val = -2.0f; *max_val = 2.0f; label = "Up Y"; *val = cam_upY;
+            break;
+        case 9:
+            *min_val = -2.0f; *max_val = 2.0f; label = "Up Z"; *val = cam_upZ;
+            break;
+        case 10:
+            *min_val = 0.2f; *max_val = 3.0f; label = "Aspect"; *val = custom_aspect;
+            break;
+        case 11:
+            if (current_proj == PERSP) {
+                *min_val = 10.0f; *max_val = 150.0f; label = "Fovy"; *val = p_fovy;
+            } else {
+                *min_val = 1.0f; *max_val = 15.0f; label = "Size"; *val = o_size;
+            }
+            break;
+        case 12:
+            if (current_proj == PERSP) {
+                *min_val = 0.1f; *max_val = 10.0f; label = "Near"; *val = p_zNear;
+            } else {
+                *min_val = 0.1f; *max_val = 10.0f; label = "Near"; *val = o_zNear;
+            }
+            break;
+        case 13:
+            if (current_proj == PERSP) {
+                *min_val = 2.0f; *max_val = 30.0f; label = "Far"; *val = p_zFar;
+            } else {
+                *min_val = 2.0f; *max_val = 30.0f; label = "Far"; *val = o_zFar;
+            }
+            break;
+        default:
+            *min_val = 0.0f; *max_val = 1.0f; label = ""; *val = 0.0f;
+            break;
+    }
+}
+
+static void set_slider_val_proj(int idx, float val) {
+    switch (idx) {
+        case 1: cam_eyeX = val; break;
+        case 2: cam_eyeY = val; break;
+        case 3: cam_eyeZ = val; break;
+        case 4: cam_cX = val; break;
+        case 5: cam_cY = val; break;
+        case 6: cam_cZ = val; break;
+        case 7: cam_upX = val; break;
+        case 8: cam_upY = val; break;
+        case 9: cam_upZ = val; break;
+        case 10: custom_aspect = val; break;
+        case 11:
+            if (current_proj == PERSP) p_fovy = val;
+            else o_size = val;
+            break;
+        case 12:
+            if (current_proj == PERSP) p_zNear = val;
+            else o_zNear = val;
+            break;
+        case 13:
+            if (current_proj == PERSP) p_zFar = val;
+            else o_zFar = val;
+            break;
+    }
+}
+
+static void draw_view_label_proj(float x, float y, const std::string& title, const std::string& subtitle) {
+    float bx1 = x + 16.0f;
+    float by1 = y - 16.0f - 46.0f;
+    float bx2 = x + 16.0f + 250.0f;
+    float by2 = y - 16.0f;
+
+    glColor3f(0.145f, 0.090f, 0.204f);
+    glBegin(GL_QUADS);
+    glVertex2f(bx1, by1);
+    glVertex2f(bx2, by1);
+    glVertex2f(bx2, by2);
+    glVertex2f(bx1, by2);
+    glEnd();
+
+    glColor3f(0.541f, 0.431f, 0.667f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(bx1, by1);
+    glVertex2f(bx2, by1);
+    glVertex2f(bx2, by2);
+    glVertex2f(bx1, by2);
+    glEnd();
+    glLineWidth(1.0f);
+
+    glColor3f(0.941f, 0.839f, 0.780f);
+    draw_text(bx1 + 12.0f, by2 - 19.0f, GLUT_BITMAP_HELVETICA_18, title);
+    glColor3f(0.690f, 0.620f, 0.780f);
+    draw_text(bx1 + 12.0f, by2 - 36.0f, GLUT_BITMAP_HELVETICA_12, subtitle);
+}
+
+static void draw_bitmap_text_centered(float x1, float x2, float y, void* font, const std::string& text) {
+    float text_w = 0.0f;
+    for (char c : text) {
+        text_w += glutBitmapWidth(font, c);
+    }
+    float start_x = (x1 + x2) / 2.0f - text_w / 2.0f;
+    draw_text(start_x, y, font, text);
+}
+
 void projections_display() {
     glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
     glDisable(GL_LIGHTING);
     glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    int panel_h = viewport_height * 0.34f;
-    int header_h = 58;
-    int gap = 14;
-    int view_h = viewport_height - panel_h - header_h - gap;
-    int view_w = (viewport_width - gap) / 2;
-
-    glViewport(viewport_x, viewport_y + viewport_height - header_h, viewport_width, header_h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, viewport_width, header_h, 0);
+    gluOrtho2D(0, 1600, 0, 900);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glDisable(GL_DEPTH_TEST);
-    draw_filled_rect(0.0f, 0.0f, viewport_width, header_h, 0.145f, 0.090f, 0.204f);
+
+    // Draw main titles
     glColor3f(0.941f, 0.839f, 0.780f);
-    draw_text(28.0f, 25.0f, GLUT_BITMAP_HELVETICA_18, "Projecoes OpenGL");
-    glColor3f(0.690f, 0.620f, 0.780f);
-    draw_text(28.0f, 45.0f, GLUT_BITMAP_HELVETICA_12, "Compare a cena renderizada com a camera e o volume de recorte");
+    draw_text(50.0f, 865.0f, GLUT_BITMAP_HELVETICA_18, "Projecoes OpenGL - Compare a cena renderizada com a camera e o volume de recorte");
     glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(viewport_width - 430.0f, 35.0f, GLUT_BITMAP_HELVETICA_18, "ESC volta ao menu");
+    draw_text(1420.0f, 865.0f, GLUT_BITMAP_HELVETICA_18, "ESC para voltar");
 
-    glViewport(viewport_x, viewport_y + panel_h, view_w, view_h);
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, view_w, view_h, 0); 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glDisable(GL_DEPTH_TEST);
-    draw_container(0.0f, 0.0f, view_w - 1.0f, view_h - 1.0f);
-    draw_view_label(16.0f, 16.0f, "Cena projetada", current_proj == PERSP ? "gluPerspective ativo" : "glOrtho ativo");
+    // Draw background containers
+    draw_container(50.0f, 350.0f, 650.0f, 850.0f);     // Left Viewport box
+    draw_container(670.0f, 350.0f, 1270.0f, 850.0f);   // Right Viewport box
+    draw_container(1290.0f, 350.0f, 1550.0f, 850.0f);  // Parameters panel
+    draw_container(50.0f, 40.0f, 790.0f, 310.0f);      // Code panel 1
+    draw_container(810.0f, 40.0f, 1550.0f, 310.0f);    // Code panel 2
+
+    // Draw labels inside viewports
+    draw_view_label_proj(50.0f, 850.0f, "Cena projetada", current_proj == PERSP ? "gluPerspective ativa" : "glOrtho ativa");
+    draw_view_label_proj(670.0f, 850.0f, "Camera e frustum", "visao externa da projecao");
+
+    // Draw code panels title & lines
+    draw_bitmap_text_centered(50.0f, 790.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "MATRIZ DE PROJECAO");
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    glVertex2f(50.0f, 265.0f);
+    glVertex2f(790.0f, 265.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    draw_bitmap_text_centered(810.0f, 1550.0f, 275.0f, GLUT_BITMAP_HELVETICA_18, "MATRIZ MODELVIEW / CAMERA");
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    glVertex2f(810.0f, 265.0f);
+    glVertex2f(1550.0f, 265.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    // Draw active code content
+    glColor3f(0.918f, 0.804f, 0.761f);
+    draw_text(70.0f, 235.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_PROJECTION);");
+    draw_text(70.0f, 205.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+
+    char buf[256];
+    if (current_proj == PERSP) {
+        snprintf(buf, sizeof(buf), "gluPerspective(%.1ff, %.2ff, %.1ff, %.1ff);", p_fovy, custom_aspect, p_zNear, p_zFar);
+    } else {
+        snprintf(buf, sizeof(buf), "glOrtho(%.1ff, %.1ff, %.1ff, %.1ff, %.1ff, %.1ff);",
+                 -o_size * custom_aspect, o_size * custom_aspect, -o_size, o_size, o_zNear, o_zFar);
+    }
+    draw_text(70.0f, 175.0f, GLUT_BITMAP_HELVETICA_18, buf);
+
+    draw_text(830.0f, 235.0f, GLUT_BITMAP_HELVETICA_18, "glMatrixMode(GL_MODELVIEW);");
+    draw_text(830.0f, 205.0f, GLUT_BITMAP_HELVETICA_18, "glLoadIdentity();");
+    snprintf(buf, sizeof(buf), "gluLookAt(%.1ff, %.1ff, %.1ff,  // eye", cam_eyeX, cam_eyeY, cam_eyeZ);
+    draw_text(830.0f, 175.0f, GLUT_BITMAP_HELVETICA_18, buf);
+    snprintf(buf, sizeof(buf), "          %.1ff, %.1ff, %.1ff,  // center", cam_cX, cam_cY, cam_cZ);
+    draw_text(830.0f, 145.0f, GLUT_BITMAP_HELVETICA_18, buf);
+    snprintf(buf, sizeof(buf), "          %.1ff, %.1ff, %.1ff); // up", cam_upX, cam_upY, cam_upZ);
+    draw_text(830.0f, 115.0f, GLUT_BITMAP_HELVETICA_18, buf);
+
+    // Draw parameters title & toggle button & sliders
+    draw_bitmap_text_centered(1290.0f, 1550.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "PARAMETROS");
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    glVertex2f(1290.0f, 810.0f);
+    glVertex2f(1550.0f, 810.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    // Toggle button
+    bool hover_toggle = is_inside(hover_mouse_x, hover_mouse_y, 1310.0f, 765.0f, 1530.0f, 800.0f);
+    if (hover_toggle) {
+        glColor3f(0.353f, 0.243f, 0.459f);
+    } else {
+        glColor3f(0.231f, 0.153f, 0.306f);
+    }
+    glBegin(GL_QUADS);
+    glVertex2f(1310.0f, 765.0f);
+    glVertex2f(1530.0f, 765.0f);
+    glVertex2f(1530.0f, 800.0f);
+    glVertex2f(1310.0f, 800.0f);
+    glEnd();
+
+    if (selected_var == 0) {
+        glColor3f(1.0f, 0.5f, 0.5f);
+    } else {
+        glColor3f(0.918f, 0.804f, 0.761f);
+    }
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(1310.0f, 765.0f);
+    glVertex2f(1530.0f, 765.0f);
+    glVertex2f(1530.0f, 800.0f);
+    glVertex2f(1310.0f, 800.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    std::string proj_btn_text = (current_proj == PERSP) ? "PROJ: PERSPECTIVA" : "PROJ: ORTOGRAFICA";
+    glColor3f(0.918f, 0.804f, 0.761f);
+    draw_bitmap_text_centered(1310.0f, 1530.0f, 777.0f, GLUT_BITMAP_HELVETICA_12, proj_btn_text);
+
+    // Sliders
+    for (int idx = 1; idx <= 13; idx++) {
+        float min_val, max_val;
+        std::string label;
+        float val;
+        get_slider_limits_proj(idx, &min_val, &max_val, label, &val);
+
+        float rail_y = 735.0f - (idx - 1) * 28.0f;
+
+        glColor3f(0.918f, 0.804f, 0.761f);
+        draw_text(1300.0f, rail_y - 4.0f, GLUT_BITMAP_HELVETICA_12, label);
+
+        glColor3f(0.5f, 0.5f, 0.6f);
+        glBegin(GL_LINES);
+        glVertex2f(1365.0f, rail_y - 8.0f);
+        glVertex2f(1485.0f, rail_y - 8.0f);
+        glEnd();
+
+        float t = (val - min_val) / (max_val - min_val);
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+        float sx = 1365.0f + t * 120.0f;
+
+        if (selected_var == idx) {
+            glColor3f(1.0f, 0.5f, 0.5f);
+        } else {
+            glColor3f(0.918f, 0.804f, 0.761f);
+        }
+        glBegin(GL_QUADS);
+        glVertex2f(sx - 4.0f, rail_y - 14.0f);
+        glVertex2f(sx + 4.0f, rail_y - 14.0f);
+        glVertex2f(sx + 4.0f, rail_y - 2.0f);
+        glVertex2f(sx - 4.0f, rail_y - 2.0f);
+        glEnd();
+
+        glColor3f(0.918f, 0.804f, 0.761f);
+        char val_buf[32];
+        if (idx == 10) {
+            snprintf(val_buf, sizeof(val_buf), "%.2f", val);
+        } else {
+            snprintf(val_buf, sizeof(val_buf), "%.1f", val);
+        }
+        draw_text(1495.0f, rail_y - 12.0f, GLUT_BITMAP_HELVETICA_12, val_buf);
+    }
+
+    // Now render 3D scenes inside the left/right viewports
+    // Calculate pixel positions
+    float rx_left = 50.0f / 1600.0f;
+    float ry_left = 350.0f / 900.0f;
+    float rw_left = (650.0f - 50.0f) / 1600.0f;
+    float rh_left = (850.0f - 350.0f) / 900.0f;
+    int px_left = viewport_x + (int)(rx_left * viewport_width);
+    int py_left = viewport_y + (int)(ry_left * viewport_height);
+    int pw_left = (int)(rw_left * viewport_width);
+    int ph_left = (int)(rh_left * viewport_height);
+
+    float rx_right = 670.0f / 1600.0f;
+    float ry_right = 350.0f / 900.0f;
+    float rw_right = (1270.0f - 670.0f) / 1600.0f;
+    float rh_right = (850.0f - 350.0f) / 900.0f;
+    int px_right = viewport_x + (int)(rx_right * viewport_width);
+    int py_right = viewport_y + (int)(ry_right * viewport_height);
+    int pw_right = (int)(rw_right * viewport_width);
+    int ph_right = (int)(rh_right * viewport_height);
+
+    // Viewport 1: Projected Scene
+    glViewport(px_left, py_left, pw_left, ph_left);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(px_left, py_left, pw_left, ph_left);
+    glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST);
     glMatrixMode(GL_PROJECTION);
@@ -411,32 +684,25 @@ void projections_display() {
     } else {
         glOrtho(-o_size * custom_aspect, o_size * custom_aspect, -o_size, o_size, o_zNear, o_zFar);
     }
-
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(cam_eyeX, cam_eyeY, cam_eyeZ,  
               cam_cX, cam_cY, cam_cZ,                 
-              cam_upX, cam_upY, cam_upZ);                
+              cam_upX, cam_upY, cam_upZ);
 
     glColor3f(0.5f, 0.5f, 0.5f);
     glutWireTorus(0.5, 1.5, 15, 30);
     draw_axes();
 
-    glViewport(viewport_x + view_w + gap, viewport_y + panel_h, view_w, view_h);
+    // Viewport 2: Camera and Frustum
+    glViewport(px_right, py_right, pw_right, ph_right);
+    glScissor(px_right, py_right, pw_right, ph_right);
+    glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, view_w, view_h, 0); 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glDisable(GL_DEPTH_TEST);
-    draw_container(0.0f, 0.0f, view_w - 1.0f, view_h - 1.0f);
-    draw_view_label(16.0f, 16.0f, "Camera e frustum", "visao externa da projecao");
-
-    glEnable(GL_DEPTH_TEST);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    float debug_aspect = (float)view_w / (float)view_h;
+    float debug_aspect = (float)pw_right / (float)ph_right;
     gluPerspective(45.0, debug_aspect, 0.1, std::max(100.0f, debug_distance * 5.0f));
 
     glMatrixMode(GL_MODELVIEW);
@@ -453,9 +719,8 @@ void projections_display() {
     glColor3f(0.5f, 0.5f, 0.5f);
     glutWireTorus(0.5, 1.5, 15, 30);
     draw_axes();
-
     draw_frustum();
-    
+
     glPushMatrix();
     glTranslatef(cam_eyeX, cam_eyeY, cam_eyeZ);
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -468,58 +733,8 @@ void projections_display() {
     glutSolidSphere(0.2f, 10, 10);
     glPopMatrix();
 
-    glViewport(viewport_x, viewport_y, viewport_width, panel_h);
+    glDisable(GL_SCISSOR_TEST);
     glDisable(GL_DEPTH_TEST);
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, viewport_width, panel_h, 0); 
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    draw_filled_rect(0.0f, 0.0f, viewport_width, panel_h, 0.118f, 0.078f, 0.169f);
-    draw_container(18.0f, 14.0f, viewport_width - 18.0f, panel_h - 14.0f);
-    draw_filled_rect(18.0f, 14.0f, viewport_width - 18.0f, 58.0f, 0.169f, 0.106f, 0.231f);
-
-    char buf[50];
-    glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(34, 40, GLUT_BITMAP_HELVETICA_18, "Setas navegam/alteram | Q/E ou scroll zoom externo | F recentraliza | arraste a view direita para orbitar | ESC volta");
-
-    std::string proj_str = (current_proj == PERSP) ? "gluPerspective" : "glOrtho";
-    draw_section_title(34.0f, 84.0f, "PROJECAO ATIVA");
-    draw_value_text(34.0f, 110.0f, 0, proj_str);
-
-    glColor3f(0.918f, 0.804f, 0.761f);
-    draw_section_title(245.0f, 84.0f, "gluLookAt");
-    draw_text(245, 110, GLUT_BITMAP_HELVETICA_18, "Eye");
-    
-    snprintf(buf, sizeof(buf), "x %.1f", cam_eyeX); draw_value_text(245, 138, 1, buf);
-    snprintf(buf, sizeof(buf), "y %.1f", cam_eyeY); draw_value_text(345, 138, 2, buf);
-    snprintf(buf, sizeof(buf), "z %.1f", cam_eyeZ); draw_value_text(445, 138, 3, buf);
-    
-    glColor3f(0.918f, 0.804f, 0.761f); draw_text(560, 110, GLUT_BITMAP_HELVETICA_18, "Center");
-    snprintf(buf, sizeof(buf), "x %.1f", cam_cX); draw_value_text(560, 138, 4, buf);
-    snprintf(buf, sizeof(buf), "y %.1f", cam_cY); draw_value_text(660, 138, 5, buf);
-    snprintf(buf, sizeof(buf), "z %.1f", cam_cZ); draw_value_text(760, 138, 6, buf);
-
-    glColor3f(0.918f, 0.804f, 0.761f); draw_text(875, 110, GLUT_BITMAP_HELVETICA_18, "Up");
-    snprintf(buf, sizeof(buf), "x %.1f", cam_upX); draw_value_text(875, 138, 7, buf);
-    snprintf(buf, sizeof(buf), "y %.1f", cam_upY); draw_value_text(975, 138, 8, buf);
-    snprintf(buf, sizeof(buf), "z %.1f", cam_upZ); draw_value_text(1075, 138, 9, buf);
-
-    draw_section_title(34.0f, 176.0f, current_proj == PERSP ? "gluPerspective" : "glOrtho");
-    if (current_proj == PERSP) {
-        snprintf(buf, sizeof(buf), "fovy %.1f", p_fovy); draw_value_text(34, 205, 11, buf);
-        snprintf(buf, sizeof(buf), "aspect %.2f", custom_aspect); draw_value_text(150, 205, 10, buf);
-        snprintf(buf, sizeof(buf), "near %.1f", p_zNear); draw_value_text(285, 205, 12, buf);
-        snprintf(buf, sizeof(buf), "far %.1f", p_zFar); draw_value_text(405, 205, 13, buf);
-    } else {
-        snprintf(buf, sizeof(buf), "aspect %.2f", custom_aspect); draw_value_text(34, 205, 10, buf);
-        snprintf(buf, sizeof(buf), "size %.1f", o_size); draw_value_text(170, 205, 11, buf);
-        snprintf(buf, sizeof(buf), "near %.1f", o_zNear); draw_value_text(285, 205, 12, buf);
-        snprintf(buf, sizeof(buf), "far %.1f", o_zFar); draw_value_text(405, 205, 13, buf);
-    }
 
     glutSwapBuffers();
 }
@@ -542,41 +757,27 @@ void projections_keyboard(unsigned char key) {
     } 
     else if (key == '-' || key == '+' || key == '=') {
         float dir = (key == '-' ) ? -1.0f : 1.0f;
-        float speed = 0.5f;
+        
+        if (selected_var == 0) {
+            current_proj = (current_proj == PERSP) ? ORTHO : PERSP;
+            update_debug_auto_frame(true);
+        } else {
+            float min_val, max_val;
+            std::string label;
+            float val;
+            get_slider_limits_proj(selected_var, &min_val, &max_val, label, &val);
 
-        switch (selected_var) {
-            case 0: 
-                current_proj = (current_proj == PERSP) ? ORTHO : PERSP;
-                selected_var = 0; 
-                break;
-            // -- View (Posição) --
-            case 1: cam_eyeX += dir * speed; break;
-            case 2: cam_eyeY += dir * speed; break;
-            case 3: cam_eyeZ += dir * speed; break;
-            // -- View (Alvo) --
-            case 4: cam_cX += dir * speed; break;
-            case 5: cam_cY += dir * speed; break;
-            case 6: cam_cZ += dir * speed; break;
-            // -- View (Up) --
-            case 7: cam_upX += dir * 0.1f; break; 
-            case 8: cam_upY += dir * 0.1f; break;
-            case 9: cam_upZ += dir * 0.1f; break;
-            // -- Matriz de Projeção --
-            case 10: custom_aspect += dir * 0.05f; break; 
-            case 11: 
-                if (current_proj == PERSP) p_fovy += dir * 2.0f;
-                else o_size += dir * speed; 
-                break;
-            case 12: 
-                if (current_proj == PERSP) p_zNear += dir * speed;
-                else o_zNear += dir * speed; 
-                break;
-            case 13: 
-                if (current_proj == PERSP) p_zFar += dir * speed;
-                else o_zFar += dir * speed; 
-                break;
+            float step = (max_val - min_val) * 0.02f;
+            if (selected_var == 10) step = 0.05f; // custom step for aspect
+            
+            float new_val = val + dir * step;
+            if (new_val < min_val) new_val = min_val;
+            if (new_val > max_val) new_val = max_val;
+            
+            set_slider_val_proj(selected_var, new_val);
+            clamp_proj_vars();
+            update_debug_auto_frame(false);
         }
-        update_debug_auto_frame(false);
     }
     glutPostRedisplay();
 }
@@ -596,21 +797,49 @@ void projections_special(int key) {
 }
 
 void projections_mouse(int button, int state, int x, int y) {
-    int panel_h = viewport_height * 0.34f;
-    int header_h = 58;
-    int gap = 14;
-    int view_h = viewport_height - panel_h - header_h - gap;
-    int view_w = (viewport_width - gap) / 2;
-    int right_x = viewport_x + view_w + gap;
-    int right_y = viewport_y + header_h;
-    bool inside_debug_view = x >= right_x && x <= right_x + view_w &&
-                             y >= right_y && y <= right_y + view_h;
+    Point2D mouse_pos = map_mouse_to_ortho(x, y);
 
     if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN && inside_debug_view) {
-            debug_orbiting = true;
-            debug_last_mouse_x = x;
-            debug_last_mouse_y = y;
+        if (state == GLUT_DOWN) {
+            // 1. Toggle button
+            if (is_inside(mouse_pos.x, mouse_pos.y, 1310.0f, 765.0f, 1530.0f, 800.0f)) {
+                current_proj = (current_proj == PERSP) ? ORTHO : PERSP;
+                selected_var = 0;
+                update_debug_auto_frame(true);
+                glutPostRedisplay();
+                return;
+            }
+
+            // 2. Sliders
+            for (int idx = 1; idx <= 13; idx++) {
+                float min_val, max_val;
+                std::string label;
+                float val;
+                get_slider_limits_proj(idx, &min_val, &max_val, label, &val);
+
+                float rail_y = 735.0f - (idx - 1) * 28.0f;
+
+                if (mouse_pos.y >= rail_y - 22.0f && mouse_pos.y <= rail_y + 6.0f &&
+                    mouse_pos.x >= 1355.0f && mouse_pos.x <= 1495.0f) {
+                    selected_var = idx;
+                    
+                    float new_t = (mouse_pos.x - 1365.0f) / 120.0f;
+                    if (new_t < 0.0f) new_t = 0.0f;
+                    if (new_t > 1.0f) new_t = 1.0f;
+                    set_slider_val_proj(idx, min_val + new_t * (max_val - min_val));
+                    clamp_proj_vars();
+                    update_debug_auto_frame(false);
+                    glutPostRedisplay();
+                    break;
+                }
+            }
+
+            // 3. Right Viewport orbiting
+            if (is_inside(mouse_pos.x, mouse_pos.y, 670.0f, 350.0f, 1270.0f, 850.0f)) {
+                debug_orbiting = true;
+                debug_last_mouse_x = x;
+                debug_last_mouse_y = y;
+            }
         } else if (state == GLUT_UP) {
             debug_orbiting = false;
         }
@@ -625,17 +854,45 @@ void projections_mouse(int button, int state, int x, int y) {
 }
 
 void projections_motion(int x, int y) {
-    if (!debug_orbiting) return;
+    Point2D mouse_pos = map_mouse_to_ortho(x, y);
+    hover_mouse_x = mouse_pos.x;
+    hover_mouse_y = mouse_pos.y;
 
-    int dx = x - debug_last_mouse_x;
-    int dy = y - debug_last_mouse_y;
-    debug_orbit_yaw += dx * 0.35f;
-    debug_orbit_pitch += dy * 0.35f;
-    if (debug_orbit_pitch < -82.0f) debug_orbit_pitch = -82.0f;
-    if (debug_orbit_pitch > 82.0f) debug_orbit_pitch = 82.0f;
+    if (debug_orbiting) {
+        int dx = x - debug_last_mouse_x;
+        int dy = y - debug_last_mouse_y;
+        debug_orbit_yaw += dx * 0.35f;
+        debug_orbit_pitch += dy * 0.35f;
+        if (debug_orbit_pitch < -82.0f) debug_orbit_pitch = -82.0f;
+        if (debug_orbit_pitch > 82.0f) debug_orbit_pitch = 82.0f;
 
-    debug_last_mouse_x = x;
-    debug_last_mouse_y = y;
+        debug_last_mouse_x = x;
+        debug_last_mouse_y = y;
+        glutPostRedisplay();
+        return;
+    }
+
+    if (selected_var >= 1 && selected_var <= 13) {
+        float min_val, max_val;
+        std::string label;
+        float val;
+        get_slider_limits_proj(selected_var, &min_val, &max_val, label, &val);
+
+        float t = (mouse_pos.x - 1365.0f) / 120.0f;
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+
+        set_slider_val_proj(selected_var, min_val + t * (max_val - min_val));
+        clamp_proj_vars();
+        update_debug_auto_frame(false);
+        glutPostRedisplay();
+    }
+}
+
+void projections_passive_motion(int x, int y) {
+    Point2D mouse_pos = map_mouse_to_ortho(x, y);
+    hover_mouse_x = mouse_pos.x;
+    hover_mouse_y = mouse_pos.y;
     glutPostRedisplay();
 }
 

@@ -51,8 +51,8 @@ void menu_display() {
     float b_x1 = b_center_x - b_width / 2.0f;
     float b_x2 = b_center_x + b_width / 2.0f;
 
-    float bezier_y1 = 215.0f;
-    float bezier_y2 = 265.0f;
+    float bezier_y1 = 260.0f;
+    float bezier_y2 = 310.0f;
     bool hover_bezier = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= bezier_y1 && menu_mouse_y <= bezier_y2);
 
     if (hover_bezier) {
@@ -85,10 +85,10 @@ void menu_display() {
     glEnd();
     glLineWidth(1.0f);
 
-    draw_stroke_text_centered(b_center_x, 240.0f, 0.18f, 2.0f, "BEZIER");
+    draw_stroke_text_centered(b_center_x, 285.0f, 0.18f, 2.0f, "BEZIER");
 
-    float vis_y1 = 135.0f;
-    float vis_y2 = 185.0f;
+    float vis_y1 = 180.0f;
+    float vis_y2 = 230.0f;
     bool hover_vis = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= vis_y1 && menu_mouse_y <= vis_y2);
 
     if (hover_vis) {
@@ -121,10 +121,10 @@ void menu_display() {
     glEnd();
     glLineWidth(1.0f);
 
-    draw_stroke_text_centered(b_center_x, 160.0f, 0.18f, 2.0f, "VISUALIZER");
+    draw_stroke_text_centered(b_center_x, 205.0f, 0.18f, 2.0f, "VISUALIZER");
 
-    float proj_y1 = 55.0f;
-    float proj_y2 = 105.0f;
+    float proj_y1 = 100.0f;
+    float proj_y2 = 150.0f;
     bool hover_proj = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2);
 
     if (hover_proj) {
@@ -157,7 +157,7 @@ void menu_display() {
     glEnd();
     glLineWidth(1.0f);
 
-    draw_stroke_text_centered(b_center_x, 80.0f, 0.18f, 2.0f, "PROJECTIONS");
+    draw_stroke_text_centered(b_center_x, 125.0f, 0.18f, 2.0f, "PROJECTIONS");
 
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -183,12 +183,12 @@ void menu_mouse(int button, int state, int x, int y) {
         float b_x1 = b_center_x - b_width / 2.0f;
         float b_x2 = b_center_x + b_width / 2.0f;
 
-        float bezier_y1 = 215.0f;
-        float bezier_y2 = 265.0f;
-        float vis_y1 = 135.0f;
-        float vis_y2 = 185.0f;
-        float proj_y1 = 55.0f;
-        float proj_y2 = 105.0f;
+        float bezier_y1 = 260.0f;
+        float bezier_y2 = 310.0f;
+        float vis_y1 = 180.0f;
+        float vis_y2 = 230.0f;
+        float proj_y1 = 100.0f;
+        float proj_y2 = 150.0f;
 
         if (state == GLUT_UP) {
             if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= bezier_y1 && menu_mouse_y <= bezier_y2) {
