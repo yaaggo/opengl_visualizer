@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(passive_motion_callback);
     glutKeyboardFunc(keyboard_callback);
     glutKeyboardUpFunc(keyboard_up_callback);
+    glutSpecialFunc(special_callback);
     glutTimerFunc(16, timer_callback, 0);
     
     glutMainLoop();
