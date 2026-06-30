@@ -38,6 +38,15 @@ GLuint load_texture(const char* path) {
     
     int width, height, nrComponents;
     unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (!data) {
+        // Try prepending "../" to the path in case the app is run from the bin directory
+        std::string fallbackPath = "../" + std::string(path);
+        data = stbi_load(fallbackPath.c_str(), &width, &height, &nrComponents, 0);
+        if (data) {
+            std::cout << "Loaded texture from fallback path: " << fallbackPath << std::endl;
+        }
+    }
+
     if (data) {
         GLenum format = GL_RGB;
         if (nrComponents == 1)
@@ -58,7 +67,8 @@ GLuint load_texture(const char* path) {
         stbi_image_free(data);
     } else {
         std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
+        glDeleteTextures(1, &textureID);
+        textureID = 0;
     }
 
     return textureID;

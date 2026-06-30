@@ -1,7 +1,7 @@
 #ifndef MODULES_H
 #define MODULES_H
 
-typedef enum { MENU, BEZIER, VISUALIZER, PROJECTIONS } module_type;
+typedef enum { MENU, BEZIER, VISUALIZER, PROJECTIONS, TEXTURE } module_type;
 extern module_type current_module;
 extern int viewport_width, viewport_height, viewport_x, viewport_y;
 

@@ -41,7 +41,7 @@ void menu_display() {
     glColor3f(0.918f, 0.804f, 0.761f);
     glLineWidth(4.0f);
     float title_x = (800.0f - ((float)glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*)"Simulador OpenGL") * 0.4f)) / 2.0f;
-    glTranslatef(title_x, 350.0f, 0.0f);
+    glTranslatef(title_x, 370.0f, 0.0f);
     glScalef(0.4f, 0.4f, 0.4f);
     glutStrokeString(GLUT_STROKE_ROMAN, (unsigned char*)"Simulador OpenGL");
     glPopMatrix();
@@ -51,10 +51,18 @@ void menu_display() {
     float b_x1 = b_center_x - b_width / 2.0f;
     float b_x2 = b_center_x + b_width / 2.0f;
 
-    float bezier_y1 = 260.0f;
-    float bezier_y2 = 310.0f;
+    // Button Y ranges
+    float bezier_y1 = 290.0f;
+    float bezier_y2 = 330.0f;
+    float vis_y1 = 230.0f;
+    float vis_y2 = 270.0f;
+    float proj_y1 = 170.0f;
+    float proj_y2 = 210.0f;
+    float tex_y1 = 110.0f;
+    float tex_y2 = 150.0f;
+
+    // 1. BEZIER Button
     bool hover_bezier = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= bezier_y1 && menu_mouse_y <= bezier_y2);
-
     if (hover_bezier) {
         if (menu_click_state == GLUT_DOWN) {
             glColor3f(0.18f, 0.12f, 0.24f);
@@ -84,13 +92,10 @@ void menu_display() {
     glVertex2f(b_x1, bezier_y2);
     glEnd();
     glLineWidth(1.0f);
+    draw_stroke_text_centered(b_center_x, 310.0f, 0.15f, 2.0f, "BEZIER");
 
-    draw_stroke_text_centered(b_center_x, 285.0f, 0.18f, 2.0f, "BEZIER");
-
-    float vis_y1 = 180.0f;
-    float vis_y2 = 230.0f;
+    // 2. VISUALIZER Button
     bool hover_vis = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= vis_y1 && menu_mouse_y <= vis_y2);
-
     if (hover_vis) {
         if (menu_click_state == GLUT_DOWN) {
             glColor3f(0.18f, 0.12f, 0.24f);
@@ -120,13 +125,10 @@ void menu_display() {
     glVertex2f(b_x1, vis_y2);
     glEnd();
     glLineWidth(1.0f);
+    draw_stroke_text_centered(b_center_x, 250.0f, 0.15f, 2.0f, "VISUALIZER");
 
-    draw_stroke_text_centered(b_center_x, 205.0f, 0.18f, 2.0f, "VISUALIZER");
-
-    float proj_y1 = 100.0f;
-    float proj_y2 = 150.0f;
+    // 3. PROJECTIONS Button
     bool hover_proj = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2);
-
     if (hover_proj) {
         if (menu_click_state == GLUT_DOWN) {
             glColor3f(0.18f, 0.12f, 0.24f);
@@ -156,8 +158,40 @@ void menu_display() {
     glVertex2f(b_x1, proj_y2);
     glEnd();
     glLineWidth(1.0f);
+    draw_stroke_text_centered(b_center_x, 190.0f, 0.15f, 2.0f, "PROJECTIONS");
 
-    draw_stroke_text_centered(b_center_x, 125.0f, 0.18f, 2.0f, "PROJECTIONS");
+    // 4. TEXTURE Button
+    bool hover_tex = (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= tex_y1 && menu_mouse_y <= tex_y2);
+    if (hover_tex) {
+        if (menu_click_state == GLUT_DOWN) {
+            glColor3f(0.18f, 0.12f, 0.24f);
+        } else {
+            glColor3f(0.353f, 0.243f, 0.459f);
+        }
+    } else {
+        glColor3f(0.282f, 0.192f, 0.369f);
+    }
+    glBegin(GL_QUADS);
+    glVertex2f(b_x1, tex_y1);
+    glVertex2f(b_x2, tex_y1);
+    glVertex2f(b_x2, tex_y2);
+    glVertex2f(b_x1, tex_y2);
+    glEnd();
+
+    if (hover_tex) {
+        glColor3f(1.0f, 0.9f, 0.85f);
+    } else {
+        glColor3f(0.918f, 0.804f, 0.761f);
+    }
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(b_x1, tex_y1);
+    glVertex2f(b_x2, tex_y1);
+    glVertex2f(b_x2, tex_y2);
+    glVertex2f(b_x1, tex_y2);
+    glEnd();
+    glLineWidth(1.0f);
+    draw_stroke_text_centered(b_center_x, 130.0f, 0.15f, 2.0f, "TEXTURE");
 
     glPushMatrix();
     glColor3f(0.918f, 0.804f, 0.761f);
@@ -183,12 +217,14 @@ void menu_mouse(int button, int state, int x, int y) {
         float b_x1 = b_center_x - b_width / 2.0f;
         float b_x2 = b_center_x + b_width / 2.0f;
 
-        float bezier_y1 = 260.0f;
-        float bezier_y2 = 310.0f;
-        float vis_y1 = 180.0f;
-        float vis_y2 = 230.0f;
-        float proj_y1 = 100.0f;
-        float proj_y2 = 150.0f;
+        float bezier_y1 = 290.0f;
+        float bezier_y2 = 330.0f;
+        float vis_y1 = 230.0f;
+        float vis_y2 = 270.0f;
+        float proj_y1 = 170.0f;
+        float proj_y2 = 210.0f;
+        float tex_y1 = 110.0f;
+        float tex_y2 = 150.0f;
 
         if (state == GLUT_UP) {
             if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= bezier_y1 && menu_mouse_y <= bezier_y2) {
@@ -197,6 +233,8 @@ void menu_mouse(int button, int state, int x, int y) {
                 current_module = VISUALIZER;
             } else if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= proj_y1 && menu_mouse_y <= proj_y2) {
                 current_module = PROJECTIONS;
+            } else if (menu_mouse_x >= b_x1 && menu_mouse_x <= b_x2 && menu_mouse_y >= tex_y1 && menu_mouse_y <= tex_y2) {
+                current_module = TEXTURE;
             }
         }
     }
