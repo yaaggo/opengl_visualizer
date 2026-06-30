@@ -4,6 +4,7 @@
 #include "bezier.h"
 #include "visualizer.h"
 #include "projections.h"
+#include "texture.h"
 
 module_type current_module = MENU;
 int viewport_width, viewport_height, viewport_x = 0, viewport_y = 0;
@@ -21,6 +22,10 @@ void display_callback() {
             break;
         case PROJECTIONS:
             projections_display();
+            break;
+        case TEXTURE:
+            texture_display();
+            break;
     }
 }
 
@@ -37,6 +42,9 @@ void mouse_callback(int button, int state, int x, int y) {
             break;
         case PROJECTIONS:
             projections_mouse(button, state, x, y);
+            break;
+        case TEXTURE:
+            texture_mouse(button, state, x, y);
             break;
     }
 }
@@ -55,6 +63,9 @@ void motion_callback(int x, int y) {
         case PROJECTIONS:
             projections_motion(x, y);
             break;
+        case TEXTURE:
+            texture_motion(x, y);
+            break;
     }
 }
 
@@ -70,6 +81,9 @@ void passive_motion_callback(int x, int y) {
             break;
         case PROJECTIONS:
             projections_passive_motion(x, y);
+            break;
+        case TEXTURE:
+            texture_passive_motion(x, y);
             break;
     }
 }
@@ -97,6 +111,9 @@ void keyboard_callback(unsigned char key, int x, int y) {
         case PROJECTIONS:
             projections_keyboard(key);
             break;
+        case TEXTURE:
+            texture_keyboard(key);
+            break;
     }
 }
 
@@ -112,6 +129,8 @@ void special_callback(int key, int x, int y) {
             break;
         case PROJECTIONS:
             projections_special(key);
+            break;
+        case TEXTURE:
             break;
     }
 }
@@ -129,6 +148,9 @@ void keyboard_up_callback(unsigned char key, int x, int y) {
             break;
         case PROJECTIONS:
             break;
+        case TEXTURE:
+            texture_keyboard_up(key);
+            break;
     }
 }
 
@@ -138,6 +160,8 @@ void timer_callback(int value) {
         visualizer_update();
     } else if (current_module == PROJECTIONS) {
         projections_update();
+    } else if (current_module == TEXTURE) {
+        texture_update();
     }
     glutPostRedisplay();
     glutTimerFunc(16, timer_callback, 0);

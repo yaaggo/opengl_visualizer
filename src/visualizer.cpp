@@ -57,6 +57,7 @@ static float camera_pos_z = -5.0f;
 
 static float camera_2d_pos_x = 0.0f;
 static float camera_2d_pos_y = 0.0f;
+static float camera_2d_zoom = 1.0f;
 
 static float hover_mouse_x = 0.0f;
 static float hover_mouse_y = 0.0f;
@@ -263,8 +264,10 @@ void draw_textured_cube(float size) {
 }
 
 void visualizer_display() {
-    if (crate_texture_id == 0) {
+    static bool crate_load_attempted = false;
+    if (!crate_load_attempted) {
         crate_texture_id = load_texture("assets/crate.png");
+        crate_load_attempted = true;
     }
 
     if (!is_lighting_enabled) {
@@ -460,7 +463,7 @@ void visualizer_display() {
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glLoadIdentity();
-        glOrtho(-460.0, 460.0, -250.0, 250.0, -1000.0, 1000.0);
+        glOrtho(-460.0 * camera_2d_zoom, 460.0 * camera_2d_zoom, -250.0 * camera_2d_zoom, 250.0 * camera_2d_zoom, -1000.0, 1000.0);
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
@@ -1163,6 +1166,24 @@ void visualizer_mouse(int button, int state, int x, int y) {
         } else if (state == GLUT_UP) {
             right_button_down = false;
         }
+    } else if (state == GLUT_UP) {
+        if (button == 3) {
+            if (current_mode_3d) {
+                camera_pos_z += 0.25f;
+                if (camera_pos_z > -1.0f) camera_pos_z = -1.0f;
+            } else {
+                camera_2d_zoom *= 0.9f;
+                if (camera_2d_zoom < 0.1f) camera_2d_zoom = 0.1f;
+            }
+        } else if (button == 4) {
+            if (current_mode_3d) {
+                camera_pos_z -= 0.25f;
+                if (camera_pos_z < -15.0f) camera_pos_z = -15.0f;
+            } else {
+                camera_2d_zoom *= 1.1f;
+                if (camera_2d_zoom > 10.0f) camera_2d_zoom = 10.0f;
+            }
+        }
     }
     glutPostRedisplay();
 }
@@ -1256,6 +1277,7 @@ void visualizer_keyboard(unsigned char key) {
         camera_pos_z = -5.0f;
         camera_2d_pos_x = 0.0f;
         camera_2d_pos_y = 0.0f;
+        camera_2d_zoom = 1.0f;
     }
     if (key == 't' || key == 'T') {
         is_texture_enabled = !is_texture_enabled;
@@ -1280,6 +1302,7 @@ void visualizer_keyboard(unsigned char key) {
         light_3d_y = 1.5f;
         light_3d_z = 2.0f;
         current_page_idx = 1;
+        camera_2d_zoom = 1.0f;
     } else if (lower_key == 'w' || lower_key == 's' || lower_key == 'a' || lower_key == 'd') {
         keys_state[lower_key] = true;
     }
