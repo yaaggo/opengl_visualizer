@@ -339,6 +339,7 @@ struct Point2D {
 
 static float hover_mouse_x = 0.0f;
 static float hover_mouse_y = 0.0f;
+static int active_drag_slider = -1;
 
 static Point2D map_mouse_to_ortho(int x, int y) {
     int local_x = x - viewport_x;
@@ -456,8 +457,8 @@ static void set_slider_val_proj(int idx, float val) {
 
 static void draw_view_label_proj(float x, float y, const std::string& title, const std::string& subtitle) {
     float bx1 = x + 16.0f;
-    float by1 = y - 16.0f - 46.0f;
-    float bx2 = x + 16.0f + 250.0f;
+    float by1 = y - 16.0f - 42.0f;
+    float bx2 = x + 16.0f + 210.0f;
     float by2 = y - 16.0f;
 
     glColor3f(0.145f, 0.090f, 0.204f);
@@ -479,9 +480,9 @@ static void draw_view_label_proj(float x, float y, const std::string& title, con
     glLineWidth(1.0f);
 
     glColor3f(0.941f, 0.839f, 0.780f);
-    draw_text(bx1 + 12.0f, by2 - 19.0f, GLUT_BITMAP_HELVETICA_18, title);
+    draw_text(bx1 + 12.0f, by2 - 16.0f, GLUT_BITMAP_HELVETICA_18, title);
     glColor3f(0.690f, 0.620f, 0.780f);
-    draw_text(bx1 + 12.0f, by2 - 36.0f, GLUT_BITMAP_HELVETICA_12, subtitle);
+    draw_text(bx1 + 12.0f, by2 - 32.0f, GLUT_BITMAP_HELVETICA_12, subtitle);
 }
 
 static void draw_bitmap_text_centered(float x1, float x2, float y, void* font, const std::string& text) {
@@ -499,6 +500,7 @@ void projections_display() {
     glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // 1. Switch to 2D Ortho to draw container backgrounds
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, 1600, 0, 900);
@@ -506,18 +508,113 @@ void projections_display() {
     glLoadIdentity();
     glDisable(GL_DEPTH_TEST);
 
-    // Draw main titles
-    glColor3f(0.941f, 0.839f, 0.780f);
-    draw_text(50.0f, 865.0f, GLUT_BITMAP_HELVETICA_18, "Projecoes OpenGL - Compare a cena renderizada com a camera e o volume de recorte");
-    glColor3f(0.918f, 0.804f, 0.761f);
-    draw_text(1420.0f, 865.0f, GLUT_BITMAP_HELVETICA_18, "ESC para voltar");
-
-    // Draw background containers
     draw_container(50.0f, 350.0f, 650.0f, 850.0f);     // Left Viewport box
     draw_container(670.0f, 350.0f, 1270.0f, 850.0f);   // Right Viewport box
     draw_container(1290.0f, 350.0f, 1550.0f, 850.0f);  // Parameters panel
     draw_container(50.0f, 40.0f, 790.0f, 310.0f);      // Code panel 1
     draw_container(810.0f, 40.0f, 1550.0f, 310.0f);    // Code panel 2
+
+    // 2. Now render 3D scenes inside the left/right viewports
+    // Calculate pixel positions
+    float rx_left = 50.0f / 1600.0f;
+    float ry_left = 350.0f / 900.0f;
+    float rw_left = (650.0f - 50.0f) / 1600.0f;
+    float rh_left = (850.0f - 350.0f) / 900.0f;
+    int px_left = viewport_x + (int)(rx_left * viewport_width);
+    int py_left = viewport_y + (int)(ry_left * viewport_height);
+    int pw_left = (int)(rw_left * viewport_width);
+    int ph_left = (int)(rh_left * viewport_height);
+
+    float rx_right = 670.0f / 1600.0f;
+    float ry_right = 350.0f / 900.0f;
+    float rw_right = (1270.0f - 670.0f) / 1600.0f;
+    float rh_right = (850.0f - 350.0f) / 900.0f;
+    int px_right = viewport_x + (int)(rx_right * viewport_width);
+    int py_right = viewport_y + (int)(ry_right * viewport_height);
+    int pw_right = (int)(rw_right * viewport_width);
+    int ph_right = (int)(rh_right * viewport_height);
+
+    // Viewport 1: Projected Scene
+    glViewport(px_left, py_left, pw_left, ph_left);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(px_left, py_left, pw_left, ph_left);
+    glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    if (current_proj == PERSP) {
+        gluPerspective(p_fovy, custom_aspect, p_zNear, p_zFar);
+    } else {
+        glOrtho(-o_size * custom_aspect, o_size * custom_aspect, -o_size, o_size, o_zNear, o_zFar);
+    }
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(cam_eyeX, cam_eyeY, cam_eyeZ,  
+              cam_cX, cam_cY, cam_cZ,                 
+              cam_upX, cam_upY, cam_upZ);
+
+    glColor3f(0.5f, 0.5f, 0.5f);
+    glutWireTorus(0.5, 1.5, 15, 30);
+    draw_axes();
+
+    // Viewport 2: Camera and Frustum
+    glViewport(px_right, py_right, pw_right, ph_right);
+    glScissor(px_right, py_right, pw_right, ph_right);
+    glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    float debug_aspect = (float)pw_right / (float)ph_right;
+    gluPerspective(45.0, debug_aspect, 0.1, std::max(100.0f, debug_distance * 5.0f));
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    float yaw_rad = debug_orbit_yaw * 3.14159f / 180.0f;
+    float pitch_rad = debug_orbit_pitch * 3.14159f / 180.0f;
+    float cam_x = debug_focus.x + debug_distance * std::cos(pitch_rad) * std::sin(yaw_rad);
+    float cam_y = debug_focus.y + debug_distance * std::sin(pitch_rad);
+    float cam_z = debug_focus.z + debug_distance * std::cos(pitch_rad) * std::cos(yaw_rad);
+    gluLookAt(cam_x, cam_y, cam_z, 
+              debug_focus.x, debug_focus.y, debug_focus.z, 
+              0.0, 1.0, 0.0);
+
+    glColor3f(0.5f, 0.5f, 0.5f);
+    glutWireTorus(0.5, 1.5, 15, 30);
+    draw_axes();
+    draw_frustum();
+
+    glPushMatrix();
+    glTranslatef(cam_eyeX, cam_eyeY, cam_eyeZ);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glutSolidCube(0.5f);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(cam_cX, cam_cY, cam_cZ);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glutSolidSphere(0.2f, 10, 10);
+    glPopMatrix();
+
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_DEPTH_TEST);
+
+    // 3. Switch back to 2D Ortho to draw overlays and text on top
+    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, 1600, 0, 900);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Draw main titles & reset guide
+    glColor3f(0.941f, 0.839f, 0.780f);
+    draw_text(50.0f, 865.0f, GLUT_BITMAP_HELVETICA_18, "Projecoes OpenGL - Compare a cena renderizada com a camera e o volume de recorte");
+    glColor3f(0.918f, 0.804f, 0.761f);
+    draw_text(1420.0f, 865.0f, GLUT_BITMAP_HELVETICA_18, "ESC para voltar");
+    draw_text(1115.0f, 820.0f, GLUT_BITMAP_HELVETICA_18, "R - Reset Param");
 
     // Draw labels inside viewports
     draw_view_label_proj(50.0f, 850.0f, "Cena projetada", current_proj == PERSP ? "gluPerspective ativa" : "glOrtho ativa");
@@ -649,93 +746,6 @@ void projections_display() {
         draw_text(1495.0f, rail_y - 12.0f, GLUT_BITMAP_HELVETICA_12, val_buf);
     }
 
-    // Now render 3D scenes inside the left/right viewports
-    // Calculate pixel positions
-    float rx_left = 50.0f / 1600.0f;
-    float ry_left = 350.0f / 900.0f;
-    float rw_left = (650.0f - 50.0f) / 1600.0f;
-    float rh_left = (850.0f - 350.0f) / 900.0f;
-    int px_left = viewport_x + (int)(rx_left * viewport_width);
-    int py_left = viewport_y + (int)(ry_left * viewport_height);
-    int pw_left = (int)(rw_left * viewport_width);
-    int ph_left = (int)(rh_left * viewport_height);
-
-    float rx_right = 670.0f / 1600.0f;
-    float ry_right = 350.0f / 900.0f;
-    float rw_right = (1270.0f - 670.0f) / 1600.0f;
-    float rh_right = (850.0f - 350.0f) / 900.0f;
-    int px_right = viewport_x + (int)(rx_right * viewport_width);
-    int py_right = viewport_y + (int)(ry_right * viewport_height);
-    int pw_right = (int)(rw_right * viewport_width);
-    int ph_right = (int)(rh_right * viewport_height);
-
-    // Viewport 1: Projected Scene
-    glViewport(px_left, py_left, pw_left, ph_left);
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(px_left, py_left, pw_left, ph_left);
-    glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glEnable(GL_DEPTH_TEST);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    if (current_proj == PERSP) {
-        gluPerspective(p_fovy, custom_aspect, p_zNear, p_zFar);
-    } else {
-        glOrtho(-o_size * custom_aspect, o_size * custom_aspect, -o_size, o_size, o_zNear, o_zFar);
-    }
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt(cam_eyeX, cam_eyeY, cam_eyeZ,  
-              cam_cX, cam_cY, cam_cZ,                 
-              cam_upX, cam_upY, cam_upZ);
-
-    glColor3f(0.5f, 0.5f, 0.5f);
-    glutWireTorus(0.5, 1.5, 15, 30);
-    draw_axes();
-
-    // Viewport 2: Camera and Frustum
-    glViewport(px_right, py_right, pw_right, ph_right);
-    glScissor(px_right, py_right, pw_right, ph_right);
-    glClearColor(0.102f, 0.071f, 0.149f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    float debug_aspect = (float)pw_right / (float)ph_right;
-    gluPerspective(45.0, debug_aspect, 0.1, std::max(100.0f, debug_distance * 5.0f));
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    float yaw_rad = debug_orbit_yaw * 3.14159f / 180.0f;
-    float pitch_rad = debug_orbit_pitch * 3.14159f / 180.0f;
-    float cam_x = debug_focus.x + debug_distance * std::cos(pitch_rad) * std::sin(yaw_rad);
-    float cam_y = debug_focus.y + debug_distance * std::sin(pitch_rad);
-    float cam_z = debug_focus.z + debug_distance * std::cos(pitch_rad) * std::cos(yaw_rad);
-    gluLookAt(cam_x, cam_y, cam_z, 
-              debug_focus.x, debug_focus.y, debug_focus.z, 
-              0.0, 1.0, 0.0);
-
-    glColor3f(0.5f, 0.5f, 0.5f);
-    glutWireTorus(0.5, 1.5, 15, 30);
-    draw_axes();
-    draw_frustum();
-
-    glPushMatrix();
-    glTranslatef(cam_eyeX, cam_eyeY, cam_eyeZ);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glutSolidCube(0.5f);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(cam_cX, cam_cY, cam_cZ);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glutSolidSphere(0.2f, 10, 10);
-    glPopMatrix();
-
-    glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_DEPTH_TEST);
-
     glutSwapBuffers();
 }
 
@@ -746,6 +756,23 @@ void projections_keyboard(unsigned char key) {
     } else if (lower_key == 'e') {
         adjust_debug_zoom(1.2f);
     } else if (lower_key == 'f') {
+        debug_manual_zoom = 0.0f;
+        update_debug_auto_frame(true);
+    } else if (lower_key == 'r') {
+        // Reset parameters to default values
+        current_proj = PERSP;
+        cam_eyeX = 0.0f; cam_eyeY = 0.0f; cam_eyeZ = 8.0f;
+        cam_cX = 0.0f; cam_cY = 0.0f; cam_cZ = 0.0f;
+        cam_upX = 0.0f; cam_upY = 1.0f; cam_upZ = 0.0f;
+        custom_aspect = 1.0f;
+        p_fovy = 60.0f; p_zNear = 1.0f; p_zFar = 15.0f;
+        o_size = 5.0f; o_zNear = 1.0f; o_zFar = 15.0f;
+        selected_var = 0;
+        active_drag_slider = -1;
+
+        debug_orbit_yaw = 39.0f;
+        debug_orbit_pitch = 32.0f;
+        debug_distance = 22.0f;
         debug_manual_zoom = 0.0f;
         update_debug_auto_frame(true);
     } else if (key == ',') {
@@ -783,14 +810,17 @@ void projections_keyboard(unsigned char key) {
 }
 
 void projections_special(int key) {
-    if (key == GLUT_KEY_LEFT) {
+    if (key == GLUT_KEY_UP) {
         selected_var--;
         if (selected_var < 0) selected_var = MAX_VARS;
-    } else if (key == GLUT_KEY_RIGHT) {
+    } else if (key == GLUT_KEY_DOWN) {
         selected_var++;
         if (selected_var > MAX_VARS) selected_var = 0;
-    } else if (key == GLUT_KEY_DOWN || key == GLUT_KEY_UP) {
-        projections_keyboard(key == GLUT_KEY_DOWN ? '-' : '+');
+    } else if (key == GLUT_KEY_LEFT) {
+        projections_keyboard('-');
+        return;
+    } else if (key == GLUT_KEY_RIGHT) {
+        projections_keyboard('+');
         return;
     }
     glutPostRedisplay();
@@ -822,6 +852,7 @@ void projections_mouse(int button, int state, int x, int y) {
                 if (mouse_pos.y >= rail_y - 22.0f && mouse_pos.y <= rail_y + 6.0f &&
                     mouse_pos.x >= 1355.0f && mouse_pos.x <= 1495.0f) {
                     selected_var = idx;
+                    active_drag_slider = idx;
                     
                     float new_t = (mouse_pos.x - 1365.0f) / 120.0f;
                     if (new_t < 0.0f) new_t = 0.0f;
@@ -842,6 +873,7 @@ void projections_mouse(int button, int state, int x, int y) {
             }
         } else if (state == GLUT_UP) {
             debug_orbiting = false;
+            active_drag_slider = -1;
         }
     } else if (state == GLUT_UP) {
         if (button == 3) {
@@ -872,17 +904,17 @@ void projections_motion(int x, int y) {
         return;
     }
 
-    if (selected_var >= 1 && selected_var <= 13) {
+    if (active_drag_slider >= 1 && active_drag_slider <= 13) {
         float min_val, max_val;
         std::string label;
         float val;
-        get_slider_limits_proj(selected_var, &min_val, &max_val, label, &val);
+        get_slider_limits_proj(active_drag_slider, &min_val, &max_val, label, &val);
 
         float t = (mouse_pos.x - 1365.0f) / 120.0f;
         if (t < 0.0f) t = 0.0f;
         if (t > 1.0f) t = 1.0f;
 
-        set_slider_val_proj(selected_var, min_val + t * (max_val - min_val));
+        set_slider_val_proj(active_drag_slider, min_val + t * (max_val - min_val));
         clamp_proj_vars();
         update_debug_auto_frame(false);
         glutPostRedisplay();
